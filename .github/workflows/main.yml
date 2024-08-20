@@ -37,6 +37,7 @@
 #           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
 #         run: python main.py
 
+
 name: Auto Merge PRs
 
 on:
@@ -59,8 +60,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          fetch-depth: 0  # Fetch all history for all branches and tags
           ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0  # Fetch all history for all branches and tags
+
+      - name: Debug - List all branches
+        run: git branch -a
+
+      - name: Debug - List all tags
+        run: git tag -l
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -75,4 +82,3 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: python main.py
-
