@@ -129,17 +129,13 @@
 #                             else:
 #                                 print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
-
-
-#testt
 import os
 import json
 import requests
 import re
 import time
-import argparse
 
-# Get credentials from environment variables set in GitHub Actions
+# Get credentials from environment variables
 JIRA_API_TOKEN = os.getenv('JIRA_API_TOKEN')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
@@ -150,9 +146,16 @@ JIRA_SERVER = 'https://issues.redhat.com'
 GITHUB_API_URL = 'https://api.github.com'
 
 def load_config():
-    with open('repos.json', 'r') as file:
-        config = json.load(file)
-    return config
+    try:
+        with open('repos.json', 'r') as file:
+            config = json.load(file)
+        return config
+    except FileNotFoundError:
+        print("Error: 'repos.json' file not found.")
+        raise
+    except json.JSONDecodeError:
+        print("Error: 'repos.json' file is not a valid JSON.")
+        raise
 
 def fetch_open_prs(org, repo, branch=None):
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
@@ -245,26 +248,27 @@ def merge_pr(org, repo, pr_number):
         print(f"Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Auto merge PRs based on JIRA issue priority.')
-    parser.add_argument('--branch', required=True, help='Branch to check PRs for')
-    args = parser.parse_args()
+    try:
+        config = load_config()
+        org = config['org']
 
-    config = load_config()
-    org = config['org']
+        for component in config['components']:
+            for repo in component['rhds_repos']:
+                open_prs = fetch_open_prs(org, repo)
+                for pr in open_prs:
+                    jira_id = get_jira_id_from_pr(pr)
+                    if jira_id:
+                        jira_details = get_jira_issue_details(jira_id)
+                        if jira_details:
+                            priority = jira_details.get('fields', {}).get('priority', {}).get('name', '')
+                            if priority == "Blocker":
+                                mergeable = check_pr_mergeable(org, repo, pr['number'])
+                                if mergeable:
+                                    merge_pr(org, repo, pr['number'])
+                                else:
+                                    print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        raise
 
-    for component in config['components']:
-        for repo in component['rhds_repos']:
-            open_prs = fetch_open_prs(org, repo, branch=args.branch)
-            for pr in open_prs:
-                jira_id = get_jira_id_from_pr(pr)
-                if jira_id:
-                    jira_details = get_jira_issue_details(jira_id)
-                    if jira_details:
-                        priority = jira_details.get('fields', {}).get('priority', {}).get('name', '')
-                        if priority == "Blocker":
-                            mergeable = check_pr_mergeable(org, repo, pr['number'])
-                            if mergeable:
-                                merge_pr(org, repo, pr['number'])
-                            else:
-                                print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
