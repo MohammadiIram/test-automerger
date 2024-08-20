@@ -37,15 +37,16 @@
 #           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
 #         run: python main.py
 
+
 name: Auto Merge PRs
 
 on:
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to run the script on'
+      repository:
+        description: 'Repository name (e.g., MohammadiIram/test-automerger)'
         required: true
-        default: 'main'
+        default: 'test-automerger'
 
 jobs:
   auto-merge-prs:
@@ -59,24 +60,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.inputs.branch }}
           fetch-depth: 0
 
-      - name: Verify branch exists
+      - name: Set Branch from repos.json
+        id: set-branch
         run: |
-          git fetch origin
-          if git show-ref --verify --quiet "refs/remotes/origin/${{ github.event.inputs.branch }}"; then
-            echo "Branch exists: ${{ github.event.inputs.branch }}"
-          else
-            echo "Branch does not exist: ${{ github.event.inputs.branch }}"
-            exit 1
-          fi
+          repo_name="${{ github.event.inputs.repository }}"
+          branch=$(jq -r --arg repo "$repo_name" '.[$repo]' repos.json)
+          echo "Branch to checkout: $branch"
+          echo "::set-output name=branch::$branch"
 
-      - name: Debug - List all remote branches
-        run: git branch -r
-
-      - name: Debug - Show current branch
-        run: git rev-parse --abbrev-ref HEAD
+      - name: Checkout the correct branch
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ steps.set-branch.outputs.branch }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v4
