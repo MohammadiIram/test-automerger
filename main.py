@@ -137,8 +137,7 @@ import requests
 import re
 import subprocess
 import argparse
-import sys
-import time
+import time  # Import time for exponential backoff in error handling
 
 # Get credentials from environment variables
 JIRA_API_TOKEN = os.getenv('JIRA_API_TOKEN')
@@ -248,19 +247,14 @@ def merge_pr(org, repo, pr_number):
     else:
         print(f"Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}")
 
-def check_branch_exists(repo, branch):
-    subprocess.run(['git', 'fetch'], check=True)
-    result = subprocess.run(['git', 'rev-parse', '--verify', branch], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return result.returncode == 0
-
 def checkout_branch(org, repo, branch):
-    if not check_branch_exists(repo, branch):
-        print(f"Branch '{branch}' not found in repo '{repo}'.")
-        sys.exit(1)  # Exit with an error status code
-
-    subprocess.run(['git', 'clone', f'https://github.com/{org}/{repo}.git'], check=True)
-    os.chdir(repo)
-    subprocess.run(['git', 'checkout', branch], check=True)
+    try:
+        subprocess.run(['git', 'clone', f'https://github.com/{org}/{repo}.git'], check=True)
+        os.chdir(repo)
+        subprocess.run(['git', 'checkout', branch], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error: {e}. The branch '{branch}' does not exist in the repository '{repo}'.")
+        os.chdir('..')  # Ensure to go back to the previous directory
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process GitHub repositories and JIRA issues.')
@@ -283,5 +277,6 @@ if __name__ == "__main__":
                         if check_pr_mergeable(org, repo, pr['number']):
                             merge_pr(org, repo, pr['number'])
             os.chdir('..')  # Go back to the previous directory
+
 
 
