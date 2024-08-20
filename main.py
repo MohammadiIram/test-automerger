@@ -129,6 +129,7 @@
 #                             else:
 #                                 print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
+
 import os
 import json
 import requests
@@ -274,6 +275,8 @@ if __name__ == "__main__":
             if not open_prs:
                 print(f"{RED}No open PRs found for repo: {repo} on branch: {branch_name}.{RESET}")
                 sys.exit(1)  # Exit with non-zero status if no PRs found
+
+            print(f"{GREEN}Found {len(open_prs)} open PR(s) for repo: {repo} on branch: {branch_name}.{RESET}")
 
             any_blocker_pr_found = False
             for pr in open_prs:
