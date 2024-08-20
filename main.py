@@ -129,7 +129,6 @@
 #                             else:
 #                                 print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
-
 import os
 import json
 import requests
@@ -295,4 +294,5 @@ if __name__ == "__main__":
 
     print(f"{GREEN}Workflow completed successfully.{RESET}")
     sys.exit(0)  # Exit with zero status to indicate success
+
 
