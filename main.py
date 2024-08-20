@@ -129,11 +129,14 @@
 #                             else:
 #                                 print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
+
+
 import os
 import json
 import requests
 import re
-import time
+import subprocess
+import argparse
 
 # Get credentials from environment variables
 JIRA_API_TOKEN = os.getenv('JIRA_API_TOKEN')
@@ -157,17 +160,13 @@ def load_config():
         print("Error: 'repos.json' file is not a valid JSON.")
         raise
 
-def fetch_open_prs(org, repo, branch=None):
+def fetch_open_prs(org, repo, branch):
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls?state=open'
-    
-    if branch:
-        url += f'&base={branch}'
-        
+    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls?state=open&base={branch}'
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     open_prs = response.json()
-    print(f"Fetched {len(open_prs)} open PRs for repo: {repo} on branch: {branch if branch else 'all branches'}")
+    print(f"Fetched {len(open_prs)} open PRs for repo: {repo} on branch: {branch}")
     return open_prs
 
 def get_jira_id_from_pr(pr):
@@ -247,28 +246,30 @@ def merge_pr(org, repo, pr_number):
     else:
         print(f"Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}")
 
+def checkout_branch(org, repo, branch):
+    subprocess.run(['git', 'clone', f'https://github.com/{org}/{repo}.git'], check=True)
+    os.chdir(repo)
+    subprocess.run(['git', 'checkout', branch], check=True)
+
 if __name__ == "__main__":
-    try:
-        config = load_config()
-        org = config['org']
+    parser = argparse.ArgumentParser(description='Process GitHub repositories and JIRA issues.')
+    parser.add_argument('--branch', required=True, help='Branch name to check out and process')
+    args = parser.parse_args()
 
-        for component in config['components']:
-            for repo in component['rhds_repos']:
-                open_prs = fetch_open_prs(org, repo)
-                for pr in open_prs:
-                    jira_id = get_jira_id_from_pr(pr)
-                    if jira_id:
-                        jira_details = get_jira_issue_details(jira_id)
-                        if jira_details:
-                            priority = jira_details.get('fields', {}).get('priority', {}).get('name', '')
-                            if priority == "Blocker":
-                                mergeable = check_pr_mergeable(org, repo, pr['number'])
-                                if mergeable:
-                                    merge_pr(org, repo, pr['number'])
-                                else:
-                                    print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        raise
+    branch_name = args.branch
+    config = load_config()
+    org = config['org']
 
+    for component in config['components']:
+        for repo in component['rhds_repos']:
+            checkout_branch(org, repo, branch_name)
+            open_prs = fetch_open_prs(org, repo, branch_name)
+            for pr in open_prs:
+                jira_id = get_jira_id_from_pr(pr)
+                if jira_id:
+                    jira_details = get_jira_issue_details(jira_id)
+                    if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name', '') == 'Blocker':
+                        if check_pr_mergeable(org, repo, pr['number']):
+                            merge_pr(org, repo, pr['number'])
+            os.chdir('..')  # Go back to the previous directory
 
