@@ -130,7 +130,6 @@
 #                                 print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
 
-
 import os
 import json
 import requests
@@ -252,9 +251,11 @@ def checkout_branch(org, repo, branch):
         subprocess.run(['git', 'clone', f'https://github.com/{org}/{repo}.git'], check=True)
         os.chdir(repo)
         subprocess.run(['git', 'checkout', branch], check=True)
+        return True  # Indicate success
     except subprocess.CalledProcessError as e:
         print(f"Error: {e}. The branch '{branch}' does not exist in the repository '{repo}'.")
         os.chdir('..')  # Ensure to go back to the previous directory
+        return False  # Indicate failure
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process GitHub repositories and JIRA issues.')
@@ -267,16 +268,18 @@ if __name__ == "__main__":
 
     for component in config['components']:
         for repo in component['rhds_repos']:
-            checkout_branch(org, repo, branch_name)
-            open_prs = fetch_open_prs(org, repo, branch_name)
-            for pr in open_prs:
-                jira_id = get_jira_id_from_pr(pr)
-                if jira_id:
-                    jira_details = get_jira_issue_details(jira_id)
-                    if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name', '') == 'Blocker':
-                        if check_pr_mergeable(org, repo, pr['number']):
-                            merge_pr(org, repo, pr['number'])
+            if checkout_branch(org, repo, branch_name):
+                open_prs = fetch_open_prs(org, repo, branch_name)
+                for pr in open_prs:
+                    jira_id = get_jira_id_from_pr(pr)
+                    if jira_id:
+                        jira_details = get_jira_issue_details(jira_id)
+                        if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name', '') == 'Blocker':
+                            if check_pr_mergeable(org, repo, pr['number']):
+                                merge_pr(org, repo, pr['number'])
             os.chdir('..')  # Go back to the previous directory
+
+
 
 
 
