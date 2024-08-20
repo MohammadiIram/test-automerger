@@ -37,7 +37,6 @@
 #           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
 #         run: python main.py
 
-
 name: Auto Merge PRs
 
 on:
@@ -61,13 +60,23 @@ jobs:
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch }}
-          fetch-depth: 0  # Fetch all history for all branches and tags
+          fetch-depth: 0
 
-      - name: Debug - List all branches
-        run: git branch -a
+      - name: Verify branch exists
+        run: |
+          git fetch origin
+          if git show-ref --verify --quiet "refs/remotes/origin/${{ github.event.inputs.branch }}"; then
+            echo "Branch exists: ${{ github.event.inputs.branch }}"
+          else
+            echo "Branch does not exist: ${{ github.event.inputs.branch }}"
+            exit 1
+          fi
 
-      - name: Debug - List all tags
-        run: git tag -l
+      - name: Debug - List all remote branches
+        run: git branch -r
+
+      - name: Debug - Show current branch
+        run: git rev-parse --abbrev-ref HEAD
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -82,3 +91,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: python main.py
+
