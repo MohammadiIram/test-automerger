@@ -37,7 +37,6 @@
 #           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
 #         run: python main.py
 
-
 name: Auto Merge PRs
 
 on:
@@ -53,21 +52,15 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      pull-requests: write
-      contents: read
+      pull-requests: write  # Grant write permission to pull requests
+      contents: read  # Ensure that the workflow has read access to repository contents
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.inputs.branch }}
-          fetch-depth: 0
-
-      - name: List all branches
-        run: git branch -a
-
-      - name: List all remote branches
-        run: git branch -r
+          fetch-depth: 0  # Fetch all history for all branches and tags
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -81,5 +74,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
-        run: python main.py
+        run: python main.py --branch ${{ github.event.inputs.branch }}
+
+
 
