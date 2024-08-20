@@ -129,6 +129,7 @@
 #                             else:
 #                                 print(f"PR #{pr['number']} in repo {repo} is not mergeable.")
 
+
 import os
 import json
 import requests
@@ -281,6 +282,7 @@ if __name__ == "__main__":
                 if jira_id:
                     jira_details = get_jira_issue_details(jira_id)
                     if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name', '') == 'Blocker':
+                        print(f"{GREEN}Found PR #{pr['number']} with 'Blocker' priority in repo: {repo}. Proceeding to merge...{RESET}")
                         any_blocker_pr_found = True
                         if check_pr_mergeable(org, repo, pr['number']):
                             merge_pr(org, repo, pr['number'])
