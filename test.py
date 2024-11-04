@@ -48,17 +48,18 @@ def get_jira_id_from_pr(pr):
 
     jira_id_pattern = r'[A-Z]+-\d+'
     
+   # Check the title for a JIRA ID
     jira_id_match = re.search(jira_id_pattern, title)
     if jira_id_match:
-        jira_id = jira_id_match.group(0)
-        return jira_id
+        return jira_id_match.group(0)  # Return the found JIRA ID
 
+    # Check the body for a JIRA ID
     jira_id_match = re.search(jira_id_pattern, body)
     if jira_id_match:
-        jira_id = jira_id_match.group(0)
-        return jira_id
+        return jira_id_match.group(0)  # Return the found JIRA ID
 
-    return None
+    # Return a message if no JIRA ID was found
+    return "No JIRA ID found in PR"
 
 def get_jira_issue_details(jira_id, max_retries=3):
     headers = {
