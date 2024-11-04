@@ -116,7 +116,7 @@ def merge_pr(org, repo, pr_number):
         # After merging, add a comment to the JIRA issue
         jira_id = get_jira_id_from_pr(pr)  # Obtain the JIRA ID from the PR
         if jira_id:
-            pr_link = f"https://github.com/{org}/{repo}/pull/{pr_number}"  # Construct the PR link (Update the format)
+            pr_link = f"https://github.com/{org}/{repo}/pull/{pr_number}"  # Construct the PR link
             comment_on_jira_issue(jira_id, "The associated pull request has been merged.", pr_link)
     else:
         print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
@@ -212,11 +212,13 @@ if __name__ == "__main__":
                 jira_id = get_jira_id_from_pr(pr)
                 if jira_id:
                     jira_details = get_jira_issue_details(jira_id)
-                    if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name', '') == 'Blocker':
-                        print(f"{GREEN}Found PR #{pr['number']} with 'Blocker' priority in repo: {repo}. Proceeding to merge...{RESET}")
+                    if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
+                        print(f"{GREEN}Merging PR #{pr['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
                         if check_pr_mergeable(org, repo, pr['number']):
                             merge_pr(org, repo, pr['number'])
-                        all_prs_found = True
-
-    if not all_prs_found:
-        print(f"{RED}No valid PRs found for merging.{RESET}")
+                        else:
+                            print(f"{RED}PR #{pr['number']} is not mergeable.{RESET}")
+                    else:
+                        print(f"{RED}Skipping PR #{pr['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
+                else:
+                    print(f"{RED}No JIRA ID found in PR #{pr['number']}. Skipping.{RESET}")
