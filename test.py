@@ -165,6 +165,8 @@ def is_user_in_org(org, username):
 
 def check_authors(org, pr):
     pr_author = pr['user']['login']
+    
+    # Check if the PR author is a member of the organization
     if not is_user_in_org(org, pr_author):
         print(f"{RED}PR author '{pr_author}' is not a member of the '{org}' organization.{RESET}")
         return False
@@ -177,13 +179,16 @@ def check_authors(org, pr):
     commits = commits_response.json()
 
     for commit in commits:
-        commit_author = commit['commit']['author']['name']
         commit_author_login = commit['committer']['login'] if 'committer' in commit else None
-        if commit_author_login and not is_user_in_org(org, commit_author_login):
-            print(f"{RED}Commit author '{commit_author_login}' is not a member of the '{org}' organization.{RESET}")
-            return False
+        
+        # Allow the PR author if they are part of the organization
+        if commit_author_login != pr_author:
+            if commit_author_login and not is_user_in_org(org, commit_author_login):
+                print(f"{RED}Commit author '{commit_author_login}' is not a member of the '{org}' organization.{RESET}")
+                return False
 
     return True
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process GitHub repositories and JIRA issues.')
