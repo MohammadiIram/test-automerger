@@ -1,4 +1,4 @@
-name: Run auto-merge script
+name: test
 
 on:
   workflow_dispatch:
