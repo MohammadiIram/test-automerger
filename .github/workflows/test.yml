@@ -34,3 +34,18 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
           python test.py --branch ${{ github.event.inputs.branch }}
+
+      - name: Slack Notification on Success
+        if: ${{ success() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_MESSAGE: ':tada: The pipeline succeeded!'
+          SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
+
+      - name: Slack Notification on Failure
+        if: ${{ failure() }}
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_MESSAGE: ':red-warning: The pipeline failed!'
+          SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
+
