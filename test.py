@@ -46,6 +46,10 @@ def get_jira_id_from_pr(pr):
     title = pr.get('title', '')
     body = pr.get('body', '')
 
+    # Ensure title and body are strings
+    title = str(title)
+    body = str(body)
+
     jira_id_pattern = r'[A-Z]+-\d+'
     
    # Check the title for a JIRA ID
