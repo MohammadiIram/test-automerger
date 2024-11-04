@@ -164,29 +164,15 @@ def is_user_in_org(org, username):
     return response.status_code == 204  # 204 No Content means the user is a member
 
 def check_authors(org, pr):
-    pr_author = pr['user']['login']
-    
+    pr_author = pr['user']['login']  # Original PR author
+
     # Check if the PR author is a member of the organization
     if not is_user_in_org(org, pr_author):
         print(f"{RED}PR author '{pr_author}' is not a member of the '{org}' organization.{RESET}")
-        return False
+        return False  # Skip if the author is not in the organization
 
-    # Check all commit authors
-    commit_url = pr['commits_url']
-    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    commits_response = requests.get(commit_url, headers=headers)
-    commits_response.raise_for_status()
-    commits = commits_response.json()
-
-    for commit in commits:
-        commit_author_login = commit['committer']['login'] if 'committer' in commit else None
-        
-        # Allow the PR author if they are part of the organization
-        if commit_author_login != pr_author:
-            if commit_author_login and not is_user_in_org(org, commit_author_login):
-                print(f"{RED}Commit author '{commit_author_login}' is not a member of the '{org}' organization.{RESET}")
-                return False
-
+    # If PR author is valid, we don't need to check individual commits
+    print(f"{GREEN}PR author '{pr_author}' is a valid member of the organization.{RESET}")
     return True
 
 
