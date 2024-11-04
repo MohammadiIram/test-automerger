@@ -244,13 +244,15 @@ def merge_pr(org, repo, pr_number):
     
     if response.status_code == 200:
         print(f"{GREEN}PR #{pr_number} in repo {repo} was successfully merged.{RESET}")
+
         # After merging, add a comment to the JIRA issue
-        jira_id = get_jira_id_from_pr(pr)  # You can obtain the Jira ID here
+        jira_id = get_jira_id_from_pr(pr)  # Obtain the JIRA ID from the PR
         if jira_id:
-            pr_link = f"{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}" 
-            comment_on_jira_issue(jira_id, "The associated pull request has been merged.")
+            pr_link = f"https://github.com/{org}/{repo}/pull/{pr_number}"  # Construct the PR link (Update the format)
+            comment_on_jira_issue(jira_id, "The associated pull request has been merged.", pr_link)
     else:
         print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
+
 
 
 def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
