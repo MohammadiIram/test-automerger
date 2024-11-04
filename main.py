@@ -244,11 +244,15 @@ def merge_pr(org, repo, pr_number):
     
     if response.status_code == 200:
         print(f"{GREEN}PR #{pr_number} in repo {repo} was successfully merged.{RESET}")
+        # After merging, add a comment to the JIRA issue
+        jira_id = get_jira_id_from_pr(pr)  # You can obtain the Jira ID here
+        if jira_id:
+            comment_on_jira_issue(jira_id, "The associated pull request has been merged.")
     else:
         print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
 
 
-def add_comment_to_jira_issue(jira_id, comment):
+def comment_on_jira_issue(jira_id, comment, max_retries=3):
     headers = {
         'Authorization': f'Bearer {JIRA_API_TOKEN}',
         'Content-Type': 'application/json'
@@ -257,11 +261,22 @@ def add_comment_to_jira_issue(jira_id, comment):
     data = {
         'body': comment
     }
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code == 201:
-        print(f"{GREEN}Comment added to JIRA issue {jira_id}: {comment}{RESET}")
-    else:
-        print(f"{RED}Failed to add comment to JIRA issue {jira_id}. Response: {response.status_code} - {response.json()}{RESET}")
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            print(f"{GREEN}Comment added to JIRA issue {jira_id}.{RESET}")
+            return
+        except requests.exceptions.HTTPError as err:
+            print(f"{RED}Failed to add comment to JIRA issue {jira_id}: {err}{RESET}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+        except Exception as err:
+            print(f"{RED}Unexpected error while commenting on JIRA issue {jira_id}: {err}{RESET}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+
+    print(f"{RED}Failed to add comment to JIRA issue {jira_id} after {max_retries} attempts.{RESET}")
+
 
 
 def checkout_branch(org, repo, branch):
