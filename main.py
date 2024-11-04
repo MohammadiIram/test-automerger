@@ -247,6 +247,23 @@ def merge_pr(org, repo, pr_number):
     else:
         print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
 
+
+def add_comment_to_jira_issue(jira_id, comment):
+    headers = {
+        'Authorization': f'Bearer {JIRA_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}/comment'
+    data = {
+        'body': comment
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 201:
+        print(f"{GREEN}Comment added to JIRA issue {jira_id}: {comment}{RESET}")
+    else:
+        print(f"{RED}Failed to add comment to JIRA issue {jira_id}. Response: {response.status_code} - {response.json()}{RESET}")
+
+
 def checkout_branch(org, repo, branch):
     try:
         subprocess.run(['git', 'clone', f'https://github.com/{org}/{repo}.git'], check=True)
