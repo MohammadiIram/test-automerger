@@ -247,19 +247,21 @@ def merge_pr(org, repo, pr_number):
         # After merging, add a comment to the JIRA issue
         jira_id = get_jira_id_from_pr(pr)  # You can obtain the Jira ID here
         if jira_id:
+            pr_link = f"{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}" 
             comment_on_jira_issue(jira_id, "The associated pull request has been merged.")
     else:
         print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
 
 
-def comment_on_jira_issue(jira_id, comment, max_retries=3):
+def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
     headers = {
         'Authorization': f'Bearer {JIRA_API_TOKEN}',
         'Content-Type': 'application/json'
     }
     url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}/comment'
+    full_comment = f"{comment}\n\n[View Pull Request]({pr_link})"  # Add the PR link to the comment
     data = {
-        'body': comment
+        'body': full_comment
     }
 
     for attempt in range(max_retries):
