@@ -37,26 +37,41 @@ jobs:
         run: |
           python test.py --branch "${{ github.event.inputs.branch }}" | tee script_output.txt
       
-      # Read the output from the file and save it to an environment variable
-      - name: Capture Script Output
-        id: capture_output
+      # Read the output from the file and save it to a formatted Slack message
+      - name: Summary
+        id: summary
         run: |
-          formatted_output=$(sed 's/\x1B\[92m/✅ /g; s/\x1B\[91m/❌ /g; s/\x1B\[[0-9;]*[mK]//g' script_output.txt)
-          slack_message=$(echo "$formatted_output" | sed ':a;N;$!ba;s/\n/\\n/g')
-          echo "slack_message=${slack_message}" >> $GITHUB_ENV
+          # Read the output from the script and format it as desired
+          output=$(cat script_output.txt)
+          
+          # Here you can customize the Slack message format
+          slack_message="*Branch:* ${GITHUB_REF}\n*Output:*\n${output}"
 
-      # Slack Notification on Success, including script output
+          # Prepare the message for Slack using GITHUB_OUTPUT
+          echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
+          echo "$slack_message" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+      # Slack Notification on Success
       - name: Slack Notification on Success
         if: ${{ success() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ":tada: Post-Code Auto-merger successfully merged the PR on branch *${{ github.event.inputs.branch }}*.\nOutput:\n${{ env.slack_message }}"
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
+          SLACK_USERNAME: "Auto-Merge"
+          SLACK_TITLE: "Merge Summary"
+          SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
+          SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
+          SLACK_COLOR: '#36a64f'  # Green color for success
 
-      # Slack Notification on Failure, including script output
+      # Slack Notification on Failure
       - name: Slack Notification on Failure
         if: ${{ failure() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ":red-warning: Post-Code Auto-merger failed to merge the PR on branch *${{ github.event.inputs.branch }}*.\nOutput:\n${{ env.slack_message }}"
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
+          SLACK_USERNAME: "Auto-Merge"
+          SLACK_TITLE: "Merge Failed"
+          SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
+          SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
+          SLACK_COLOR: '#ff0000'  # Red color for failure
