@@ -27,25 +27,41 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-
+      
+      # Run the Python script and capture the output in a file
       - name: Run Python Script
+        id: run_script
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
-          python test.py --branch ${{ github.event.inputs.branch }}
+          python test.py --branch "${{ github.event.inputs.branch }}" > script_output.txt 2>&1
 
+      # Read the output from the file and save it to an environment variable
+      - name: Capture Script Output
+        id: capture_output
+        run: |
+          output=$(cat script_output.txt)
+          echo "script_output=$output" >> $GITHUB_ENV
+
+      # Slack Notification on Success, including script output
       - name: Slack Notification on Success
         if: ${{ success() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ':tada: Post-Code Auto-merger successfully merged the PR: *${{ github.event.pull_request.title }}*\nLink to PR: ${{ github.event.pull_request.html_url }}'
+          SLACK_MESSAGE: |
+            :tada: Post-Code Auto-merger successfully merged the PR: *${{ github.event.inputs.branch }}*
+            *Details:*
+            ```${{ env.script_output }}```
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
 
+      # Slack Notification on Failure, including script output
       - name: Slack Notification on Failure
         if: ${{ failure() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ':red-warning: Post-Code Auto-merger failed to merge this PR: *${{ github.event.pull_request.title }}*\nLink to PR: ${{ github.event.pull_request.html_url }}'
+          SLACK_MESSAGE: |
+            :red-warning: Post-Code Auto-merger failed to merge this PR: *${{ github.event.inputs.branch }}*
+            *Details:*
+            ```${{ env.script_output }}```
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
-
