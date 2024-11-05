@@ -41,7 +41,7 @@ jobs:
       - name: Capture Script Output
         id: capture_output
         run: |
-          cleaned_output=$(sed 's/\x1B\[[0-9;]*[mK]//g' script_output.txt | tr '\n' '\\n')
+          formatted_output=$(sed 's/\x1B\[92m/✅ /g; s/\x1B\[91m/❌ /g; s/\x1B\[[0-9;]*[mK]//g' script_output.txt | tr '\n' '\\n')
           echo "script_output=$output" >> $GITHUB_ENV
 
       # Slack Notification on Success, including script output
@@ -49,19 +49,14 @@ jobs:
         if: ${{ success() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: |
-            :tada: Post-Code Auto-merger successfully merged the PR: *${{ github.event.inputs.branch }}*
-            *Details:*
-            ```${{ env.script_output }}```
+          SLACK_MESSAGE: ":tada: Post-Code Auto-merger successfully merged the PR on branch *${{ github.event.inputs.branch }}*.\nOutput:\n${{ env.script_output }}"
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
+
 
       # Slack Notification on Failure, including script output
       - name: Slack Notification on Failure
         if: ${{ failure() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: |
-            :red-warning: Post-Code Auto-merger failed to merge this PR: *${{ github.event.inputs.branch }}*
-            *Details:*
-            ```${{ env.script_output }}```
+          SLACK_MESSAGE: ":red-warning: Post-Code Auto-merger failed to merge the PR on branch *${{ github.event.inputs.branch }}*.\nOutput:\n${{ env.script_output }}"
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
