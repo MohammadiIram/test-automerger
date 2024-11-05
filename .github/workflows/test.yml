@@ -41,7 +41,7 @@ jobs:
       - name: Capture Script Output
         id: capture_output
         run: |
-          output=$(cat script_output.txt)
+          output=$(cat script_output.txt | sed ':a;N;$!ba;s/\n/\\n/g')
           echo "script_output=$output" >> $GITHUB_ENV
 
       # Slack Notification on Success, including script output
