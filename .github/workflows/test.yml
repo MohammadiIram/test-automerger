@@ -41,17 +41,17 @@ jobs:
       - name: Summary
         id: summary
         run: |
-          # Read the output from the script and format it as desired
-          output=$(cat script_output.txt)
-          
-          # Here you can customize the Slack message format
+          # Read the output from the script and remove ANSI escape codes
+          output=$(cat script_output.txt | sed 's/\x1B\[[0-9;]*m//g')
+
+          # Prepare the Slack message
           slack_message="*Branch:* ${GITHUB_REF}\n*Output:*\n${output}"
 
           # Prepare the message for Slack using GITHUB_OUTPUT
           echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
           echo "$slack_message" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
-
+          
       # Slack Notification on Success
       - name: Slack Notification on Success
         if: ${{ success() }}
