@@ -39,13 +39,13 @@ jobs:
         if: ${{ success() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ':tada: The pipeline succeeded!'
+          SLACK_MESSAGE: ':tada: Post-Code Auto-merger successfully merged the PR: *${{ github.event.pull_request.title }}*\nLink to PR: ${{ github.event.pull_request.html_url }}'
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
 
       - name: Slack Notification on Failure
         if: ${{ failure() }}
         uses: rtCamp/action-slack-notify@v2
         env:
-          SLACK_MESSAGE: ':red-warning: The pipeline failed!'
+          SLACK_MESSAGE: ':red-warning: Post-Code Auto-merger failed to merge this PR: *${{ github.event.pull_request.title }}*\nLink to PR: ${{ github.event.pull_request.html_url }}'
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
 
