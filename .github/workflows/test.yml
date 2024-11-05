@@ -36,13 +36,13 @@ jobs:
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
           python test.py --branch "${{ github.event.inputs.branch }}" | tee script_output.txt
-
+      
       # Read the output from the file and save it to an environment variable
       - name: Capture Script Output
         id: capture_output
         run: |
           formatted_output=$(sed 's/\x1B\[92m/✅ /g; s/\x1B\[91m/❌ /g; s/\x1B\[[0-9;]*[mK]//g' script_output.txt | tr '\n' '\\n')
-          echo "script_output=$output" >> $GITHUB_ENV
+          echo "script_output=${formatted_output}" >> $GITHUB_ENV
 
       # Slack Notification on Success, including script output
       - name: Slack Notification on Success
@@ -51,7 +51,6 @@ jobs:
         env:
           SLACK_MESSAGE: ":tada: Post-Code Auto-merger successfully merged the PR on branch *${{ github.event.inputs.branch }}*.\nOutput:\n${{ env.script_output }}"
           SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
-
 
       # Slack Notification on Failure, including script output
       - name: Slack Notification on Failure
