@@ -44,8 +44,11 @@ jobs:
           # Read the output from the script and remove ANSI escape codes
           output=$(cat script_output.txt | sed 's/\x1B\[[0-9;]*m//g')
 
+          # Replace valid messages with checkmarks and invalid messages with cross marks
+          formatted_output=$(echo "$output" | sed -E 's/(valid.*|allowed.*)/✅ &/g; s/(No JIRA ID.*|not a member.*)/❌ &/g')
+
           # Prepare the Slack message
-          slack_message="*Branch:* ${GITHUB_REF}\n*Output:*\n${output}"
+          slack_message="*Branch:* ${GITHUB_REF}\n*Output:*\n${formatted_output}"
 
           # Prepare the message for Slack using GITHUB_OUTPUT
           echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
