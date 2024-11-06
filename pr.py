@@ -27,6 +27,7 @@ def load_config():
     try:
         with open('repos.json', 'r') as file:
             config = json.load(file)
+            print(config)  # Print the loaded config to verify the contents
         return config
     except FileNotFoundError:
         print(f"{RED}Error: 'repos.json' file not found.{RESET}")
@@ -34,6 +35,7 @@ def load_config():
     except json.JSONDecodeError:
         print(f"{RED}Error: 'repos.json' file is not a valid JSON.{RESET}")
         raise
+
 
 def load_releases():
     url = "https://raw.githubusercontent.com/rhoai-rhtap/RHOAI-Konflux-Automation/main/Konflux-auto-merger/pcam-release.yaml"
