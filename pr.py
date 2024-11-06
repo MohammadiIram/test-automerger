@@ -27,55 +27,24 @@ def load_config():
     try:
         with open('repos.json', 'r') as file:
             config = json.load(file)
-            print(config)  # Print the loaded config to verify the contents
         return config
     except FileNotFoundError:
-        print("Error: 'repos.json' file not found.")
+        print(f"{RED}Error: 'repos.json' file not found.{RESET}")
         raise
     except json.JSONDecodeError:
-        print("Error: 'repos.json' file is not a valid JSON.")
+        print(f"{RED}Error: 'repos.json' file is not a valid JSON.{RESET}")
         raise
-
-# Load the configuration
-repos_config = load_config()
-
-# Accessing the 'org' key from the root of the configuration
-org = repos_config.get('org', None)
-
-# Check if the 'org' key exists and print its value
-if org:
-    print(f"Organization: {org}")
-else:
-    print("Error: 'org' key not found in the configuration.")
-
-# If you want to work with the 'repos' section as well
-for repo in repos_config.get('repos', []):
-    repo_name = repo['name']
-    repo_url = repo['url']
-    print(f"Repository Name: {repo_name}, URL: {repo_url}")
-
-# Accessing the 'components' list
-for component in repos_config.get('components', []):
-    component_name = component['component_name']
-    print(f"Component: {component_name}")
 
 def load_releases():
-    url = "https://raw.githubusercontent.com/rhoai-rhtap/RHOAI-Konflux-Automation/main/Konflux-auto-merger/pcam-release.yaml"
-    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-
     try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # Raise an error for bad HTTP status codes
-        release_config = yaml.safe_load(response.text)
+        with open('releases.yaml', 'r') as file:
+            release_config = yaml.safe_load(file)
         return release_config.get('releases', [])
-    except requests.exceptions.HTTPError as http_err:
-        print(f"{RED}HTTP error occurred: {http_err}{RESET}")
-        raise
-    except requests.exceptions.RequestException as req_err:
-        print(f"{RED}Request error occurred: {req_err}{RESET}")
+    except FileNotFoundError:
+        print(f"{RED}Error: 'releases.yaml' file not found.{RESET}")
         raise
     except yaml.YAMLError:
-        print(f"{RED}Error: 'pcam-release.yaml' is not a valid YAML.{RESET}")
+        print(f"{RED}Error: 'releases.yaml' file is not a valid YAML.{RESET}")
         raise
 
 def validate_branch(branch, allowed_releases):
