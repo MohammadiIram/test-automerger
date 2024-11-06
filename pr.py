@@ -24,17 +24,18 @@ JIRA_SERVER = 'https://issues.redhat.com'
 GITHUB_API_URL = 'https://api.github.com'
 
 def load_config():
+    config = None  # Initialize config variable to ensure it exists
     try:
         with open('repos.json', 'r') as file:
             config = json.load(file)
             print(config)  # Print the loaded config to verify the contents
-        return config
     except FileNotFoundError:
         print(f"{RED}Error: 'repos.json' file not found.{RESET}")
-        raise
     except json.JSONDecodeError:
         print(f"{RED}Error: 'repos.json' file is not a valid JSON.{RESET}")
-        raise
+    except Exception as e:
+        print(f"{RED}Unexpected error: {e}{RESET}")
+    return config
 
 
 def load_releases():
