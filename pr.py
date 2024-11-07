@@ -35,24 +35,24 @@ def load_config():
         print(f"{RED}Error: 'repos.json' file is not a valid JSON.{RESET}")
         raise
 
-def load_releases():
-    url = "https://raw.githubusercontent.com/rhoai-rhtap/RHOAI-Konflux-Automation/main/Konflux-auto-merger/pcam-release.yaml"
-    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+# def load_releases():
+#     url = "https://raw.githubusercontent.com/rhoai-rhtap/RHOAI-Konflux-Automation/main/Konflux-auto-merger/pcam-release.yaml"
+#     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
 
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()  # Raise an error for bad HTTP status codes
-        release_config = yaml.safe_load(response.text)
-        return release_config.get('releases', [])
-    except requests.exceptions.HTTPError as http_err:
-        print(f"{RED}HTTP error occurred: {http_err}{RESET}")
-        raise
-    except requests.exceptions.RequestException as req_err:
-        print(f"{RED}Request error occurred: {req_err}{RESET}")
-        raise
-    except yaml.YAMLError:
-        print(f"{RED}Error: 'pcam-release.yaml' is not a valid YAML.{RESET}")
-        raise
+#     try:
+#         response = requests.get(url, headers=headers)
+#         response.raise_for_status()  # Raise an error for bad HTTP status codes
+#         release_config = yaml.safe_load(response.text)
+#         return release_config.get('releases', [])
+#     except requests.exceptions.HTTPError as http_err:
+#         print(f"{RED}HTTP error occurred: {http_err}{RESET}")
+#         raise
+#     except requests.exceptions.RequestException as req_err:
+#         print(f"{RED}Request error occurred: {req_err}{RESET}")
+#         raise
+#     except yaml.YAMLError:
+#         print(f"{RED}Error: 'pcam-release.yaml' is not a valid YAML.{RESET}")
+#         raise
 
 def validate_branch(branch, allowed_releases):
     if branch not in allowed_releases:
