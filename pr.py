@@ -132,11 +132,8 @@ def check_authors(org, pr):
     return True
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Process GitHub repositories and JIRA issues.')
-    parser.add_argument('--branch', required=True, help='Branch name to check out and process')
-    args = parser.parse_args()
-    branch_name = args.branch
-
+    branch_name = os.getenv('GITHUB_REF').split('/')[-1]
+    
     allowed_releases = load_releases()
     validate_branch(branch_name, allowed_releases)
 
