@@ -210,7 +210,7 @@ def check_authors(org, pr):
 if __name__ == "__main__":
     # Load the repositories and releases
     repos_config = load_config()
-    releases = load_releases()
+    # releases = load_releases()
 
     # Check for open PRs across all repos
     for repo in repos_config['repos']:
