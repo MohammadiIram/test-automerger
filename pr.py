@@ -3,7 +3,6 @@ import json
 import requests
 import re
 import subprocess
-import argparse
 import sys
 import time
 import yaml
@@ -23,6 +22,18 @@ JIRA_SERVER = 'https://issues.redhat.com'
 # GitHub API base URL
 GITHUB_API_URL = 'https://api.github.com'
 
+def load_releases():
+    try:
+        with open('releases.yaml', 'r') as file:
+            release_config = yaml.safe_load(file)
+        return release_config.get('releases', [])
+    except FileNotFoundError:
+        print(f"{RED}Error: 'releases.yaml' file not found.{RESET}")
+        raise
+    except yaml.YAMLError:
+        print(f"{RED}Error: 'releases.yaml' file is not valid YAML.{RESET}")
+        raise
+
 def load_config():
     # Adjust to load the configuration from the GitHub Actions repository
     try:
@@ -36,18 +47,6 @@ def load_config():
         print(f"{RED}Error: 'repos.json' file is not valid JSON.{RESET}")
         raise
 
-def load_releases():
-    try:
-        with open('releases.yaml', 'r') as file:
-            release_config = yaml.safe_load(file)
-        return release_config.get('releases', [])
-    except FileNotFoundError:
-        print(f"{RED}Error: 'releases.yaml' file not found.{RESET}")
-        raise
-    except yaml.YAMLError:
-        print(f"{RED}Error: 'releases.yaml' file is not valid YAML.{RESET}")
-        raise
-
 def validate_branch(branch, allowed_releases):
     if branch not in allowed_releases:
         print(f"{RED}Branch '{branch}' is not in the list of allowed releases. Exiting.{RESET}")
@@ -55,9 +54,9 @@ def validate_branch(branch, allowed_releases):
     else:
         print(f"{GREEN}Branch '{branch}' is valid and allowed to proceed.{RESET}")
 
-def fetch_open_prs(org, repo, branch):
+def fetch_open_prs(org, repo):
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls?state=open&base={branch}'
+    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls?state=open'
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     open_prs = response.json()
@@ -141,13 +140,15 @@ if __name__ == "__main__":
     allowed_releases = load_releases()
     validate_branch(branch_name, allowed_releases)
 
+    # Load configuration from repos.json
     config = load_config()
-    org = config['org']
+    org = config['org']  # Get organization from repos.json
+    repo = config['repos'][0]['name']  # Get the first repository name from repos.json (adjust if needed)
 
     for component in config['components']:
-        for repo in component['rhds_repos']:
-            checkout_branch(org, repo, branch_name)
-            open_prs = fetch_open_prs(org, repo, branch_name)
+        for repo_name in component['rhds_repos']:
+            checkout_branch(org, repo_name, branch_name)
+            open_prs = fetch_open_prs(org, repo_name, branch_name)
             for pr in open_prs:
                 if not check_authors(org, pr):
                     continue
@@ -155,8 +156,8 @@ if __name__ == "__main__":
                 if jira_id:
                     jira_details = get_jira_issue_details(jira_id)
                     if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                        if check_pr_mergeable(org, repo, pr['number']):
-                            merge_pr(org, repo, pr['number'])
+                        if check_pr_mergeable(org, repo_name, pr['number']):
+                            merge_pr(org, repo_name, pr['number'])
                         else:
                             print(f"{RED}PR #{pr['number']} is not mergeable.{RESET}")
                     else:
