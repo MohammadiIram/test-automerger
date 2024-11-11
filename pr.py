@@ -128,7 +128,8 @@ def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
         'Content-Type': 'application/json'
     }
     url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}/comment'
-    full_comment = f"{comment}\n\n[View Pull Request]({pr_link})"  # Add the PR link to the comment
+    # Comment with only the PR link on a new line
+    full_comment = f"{comment}\n\n{pr_link}"
     data = {
         'body': full_comment
     }
@@ -141,10 +142,10 @@ def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
             return
         except requests.exceptions.HTTPError as err:
             print(f"{RED}Failed to add comment to JIRA issue {jira_id}: {err}{RESET}")
-            time.sleep(2 ** attempt)  # Exponential backoff
+            time.sleep(2 ** attempt)  
         except Exception as err:
             print(f"{RED}Unexpected error while commenting on JIRA issue {jira_id}: {err}{RESET}")
-            time.sleep(2 ** attempt)  # Exponential backoff
+            time.sleep(2 ** attempt)  
 
     print(f"{RED}Failed to add comment to JIRA issue {jira_id} after {max_retries} attempts.{RESET}")
 
