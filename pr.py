@@ -3,10 +3,7 @@ import argparse
 import json
 import requests
 import re
-import subprocess
-import sys
 import time
-import yaml
 
 GREEN = '\033[92m'
 RED = '\033[91m'
@@ -84,6 +81,14 @@ def merge_pr(org, repo, pr_number):
         print(f"{GREEN}PR #{pr_number} merged successfully.{RESET}")
     else:
         print(f"{RED}Failed to merge PR #{pr_number}. Response: {response.status_code} - {response.json()}{RESET}")
+
+def is_user_in_org(org, username):
+    """Check if a user is a member of the given GitHub organization."""
+    url = f'https://api.github.com/orgs/{org}/members/{username}'
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    response = requests.get(url, headers=headers)
+    # 204 No Content status code indicates membership
+    return response.status_code == 204
 
 def check_authors(org, pr):
     pr_author = pr['user']['login']
