@@ -92,15 +92,17 @@ def check_authors(org, pr):
     print(f"{GREEN}PR author '{pr_author}' verified in org.{RESET}")
     return True
 
-def fetch_pr_details(org, repo, pr_number):
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}'
+def fetch_pr_details_by_id(org, repo, pr_id):
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_id}'
     response = requests.get(url, headers=headers)
     if response.status_code == 404:
-        print(f"Error: PR #{pr_number} not found in the repository {org}/{repo}.")
+        print(f"Error: PR #{pr_id} not found in the repository {org}/{repo}.")
         return None
-    response.raise_for_status()  # raise error for other HTTP errors
-    return response.json()
+    response.raise_for_status()  # Raise error for other HTTP errors
+    pr_details = response.json()
+    return pr_details
+
 
 
 if __name__ == "__main__":
