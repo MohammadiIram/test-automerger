@@ -2,60 +2,20 @@
 
 name: Process PR
 on:
-  pull_request:
-    types: [opened]
+  workflow_dispatch:
+    inputs:
+      pr_id:
+        description: 'PR ID'
+        required: true
+        type: string
 
 jobs:
-  process_pr:
+  another_job:
     runs-on: ubuntu-latest
-    env:
-      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-
-      # Step 1: Check if the branch is allowed
-      - name: Load releases.yaml and check branch
-        id: branch_check
-        run: |
-          import yaml
-
-          # Load the allowed releases from releases.yaml
-          with open("releases.yaml", "r") as f:
-              releases_config = yaml.safe_load(f)
-          
-          # Extract the base branch of the PR
-          base_branch = "${{ github.event.pull_request.base.ref }}"
-
-          # Check if base_branch is in allowed releases
-          allowed_releases = releases_config.get("releases", [])
-          if base_branch not in allowed_releases:
-              print(f"Branch '{base_branch}' is not in allowed releases. Exiting.")
-              exit(1)
-          else:
-              print(f"Branch '{base_branch}' is allowed. Proceeding.")
-
-      # Step 2: Check if PR author is not 'red-hat-konflux[bot]'
-      - name: Check PR author
-        id: author_check
-        run: |
-          pr_author="${{ github.event.pull_request.user.login }}"
-          if [ "$pr_author" == "red-hat-konflux[bot]" ]; then
-            echo "PR author is 'red-hat-konflux[bot]'. Exiting."
-            exit 1
-          else
-            echo "PR author is '$pr_author'. Proceeding."
-          fi
-
-      # Step 3: Run the Python script if checks passed
       - name: Run Python script with PR ID
-        if: ${{ steps.branch_check.outcome == 'success' && steps.author_check.outcome == 'success' }}
         run: |
-          python pr.py --pr-id ${{ github.event.pull_request.number }}
+          python pr.py --pr-id ${{ github.event.inputs.pr_id }}
