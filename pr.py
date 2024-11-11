@@ -92,6 +92,13 @@ def check_authors(org, pr):
     print(f"{GREEN}PR author '{pr_author}' verified in org.{RESET}")
     return True
 
+def fetch_pr_details(org, repo, pr_number):
+    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}'
+    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.json()
+
 if __name__ == "__main__":
     args = parse_arguments()
     pr_id = args.pr_id
