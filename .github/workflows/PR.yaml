@@ -1,8 +1,9 @@
-name: PR Trigger
+# .github/workflows/your-workflow.yml
 
+name: Process PR
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened]
 
 jobs:
   process_pr:
@@ -14,17 +15,11 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: '3.8' 
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests pyyaml
+          python-version: '3.x'
 
-      - name: Run PR processing script
+      - name: Run Python script with PR ID
         env:
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python pr.py --pr-id ${{ env.PR_ID }}
-
+          python pr.py --pr-id ${{ github.event.pull_request.number }}
