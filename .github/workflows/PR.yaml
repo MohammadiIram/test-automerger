@@ -15,5 +15,8 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Run Python script with PR ID
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
           python pr.py --pr-id ${{ github.event.inputs.pr_id }}
