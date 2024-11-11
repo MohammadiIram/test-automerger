@@ -62,21 +62,33 @@ def get_jira_id_from_pr(pr):
     return None
 
 
-def get_jira_issue_details(jira_id, jira_server):
-    headers = {'Authorization': f'Bearer {JIRA_API_TOKEN}'}
-    url = f'{jira_server}/rest/api/2/issue/{jira_id}'
+def get_jira_issue_details(jira_id, max_retries=3):
+    headers = {
+        'Authorization': f'Bearer {JIRA_API_TOKEN}'
+    }
+    url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}'
 
-    for attempt in range(3):
+    for attempt in range(max_retries):
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
-            return response.json()
+            jira_details = response.json()
+            return jira_details
         except requests.exceptions.HTTPError as err:
-            if response.status_code in {403, 404}:
-                print(f"{RED}Error {response.status_code}: {jira_id} - {err}{RESET}")
+            if response.status_code == 403:
+                print(f"{RED}HTTP error 403: Forbidden for JIRA ID {jira_id}. Skipping.{RESET}")
                 return None
-            print(f"{RED}HTTP error: {err}. Retrying ({attempt + 1}/3)...{RESET}")
-            time.sleep(2 ** attempt)
+            elif response.status_code == 404:
+                print(f"{RED}JIRA issue {jira_id} not found. Skipping.{RESET}")
+                return None
+            else:
+                print(f"{RED}HTTP error occurred: {err} for JIRA ID {jira_id}. Retrying ({attempt + 1}/{max_retries})...{RESET}")
+                time.sleep(2 ** attempt)  # Exponential backoff
+        except Exception as err:
+            print(f"{RED}Unexpected error: {err} for JIRA ID {jira_id}. Retrying ({attempt + 1}/{max_retries})...{RESET}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+
+    print(f"{RED}Failed to retrieve JIRA details for ID {jira_id} after {max_retries} attempts.{RESET}")
     return None
 
 def check_pr_mergeable(org, repo, pr_number):
@@ -140,18 +152,16 @@ if __name__ == "__main__":
             # Process the specific PR based on the passed PR ID
             pr_details = fetch_pr_details_by_id(org, repo, pr_id)
             if pr_details and check_authors(org, pr_details):
-                jira_id = get_jira_id_from_pr(pr_details)
+                jira_id = get_jira_id_from_pr(pr)
                 if jira_id:
-                    jira_details = get_jira_issue_details(jira_id, jira_server)
-                    priority = jira_details.get('fields', {}).get('priority', {}).get('name')
-                    if jira_details and priority == config['jira_priority']:
-                        if check_pr_mergeable(org, repo, pr_id):
-                            merge_pr(org, repo, pr_id)
+                    jira_details = get_jira_issue_details(jira_id)
+                    if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
+                        print(f"{GREEN}Merging PR #{pr['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
+                        if check_pr_mergeable(org, repo, pr['number']):
+                            merge_pr(org, repo, pr['number'])
                         else:
-                            print(f"{RED}PR #{pr_id} is not mergeable.{RESET}")
+                            print(f"{RED}PR #{pr['number']} is not mergeable.{RESET}")
                     else:
-                        print(f"{RED}Skipping PR #{pr_id}: JIRA {jira_id} not a {config['jira_priority']} priority.{RESET}")
+                        print(f"{RED}Skipping PR #{pr['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
                 else:
-                    print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping.{RESET}")
-            else:
-                print(f"{RED}Skipping PR #{pr_id}: PR details not found or author verification failed.{RESET}")
+                    print(f"{RED}No JIRA ID found in PR #{pr['number']}. Skipping.{RESET}")
