@@ -7,12 +7,6 @@
     "jira_issue_type": "Blocker",
     "jira_priority": "Bug",
     "jira_target_release": "RHOAI_{release_version}_GA",
-    "repos": [
-        {
-            "name": "codeflare",
-            "url": "https://github.com/rhoai-rhtap/codeflare-operator.git"
-        }
-    ],
     "components": [
         {
             "component_name": "Distributed Workloads",
