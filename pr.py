@@ -117,7 +117,7 @@ if __name__ == "__main__":
     branch_name = os.getenv('GITHUB_REF').split('/')[-1]
 
     # Process the specific PR based on the passed PR ID
-    pr_details = fetch_pr_details(org, repo, pr_id)
+    pr_details = fetch_pr_details_by_id(org, repo, pr_id)  
     if pr_details and check_authors(org, pr_details):
         jira_id = get_jira_id_from_pr(pr_details)
         if jira_id:
@@ -131,3 +131,4 @@ if __name__ == "__main__":
                 print(f"{RED}Skipping PR #{pr_id}: JIRA {jira_id} not a Blocker.{RESET}")
         else:
             print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping.{RESET}")
+
