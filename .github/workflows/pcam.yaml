@@ -1,0 +1,75 @@
+name: Pcam
+
+on:
+  pull_request:
+    types: [opened]
+
+jobs:
+  process_pr:
+    runs-on: ubuntu-latest
+    env:
+      JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+
+      # Step 1: Clone the repository containing releases.yaml
+      - name: Clone releases repository
+        run: |
+          git clone https://github.com/MohammadiIram/test-automerger.git
+          echo "Releases repository cloned."
+
+      # Step 2:  releases.yaml
+      - name: Check if branch is in allowed releases
+        run: |
+          # Install yq
+          sudo wget https://github.com/mikefarah/yq/releases/download/v4.6.1/yq_linux_amd64 -O /usr/local/bin/yq
+          sudo chmod +x /usr/local/bin/yq
+      
+          # Get the base branch of the PR
+          base_branch="${{ github.event.pull_request.base.ref }}"
+      
+          # Load allowed releases from releases.yaml and check if base branch is allowed
+          allowed_releases=$(yq eval '.releases[]' test-automerger/releases.yaml)
+      
+          if echo "$allowed_releases" | grep -qx "$base_branch"; then
+            echo "Branch '$base_branch' is allowed. Proceeding."
+          else
+            echo "Branch '$base_branch' is not in allowed releases. Exiting."
+            exit 1
+          fi
+
+      # Step 3: Check if PR author is not 'red-hat-konflux[bot]'
+      - name: Check PR author
+        id: author_check
+        run: |
+          pr_author="${{ github.event.pull_request.user.login }}"
+          if [ "$pr_author" == "red-hat-konflux[bot]" ]; then
+            echo "PR author is 'red-hat-konflux[bot]'. Exiting."
+            exit 1
+          else
+            echo "PR author is '$pr_author'. Proceeding."
+          fi
+
+      # Step 4: Trigger the other workflow in the test-automerger repository
+      - name: Trigger another workflow to process PR
+        id: trigger-another-workflow
+        uses: lasith-kg/dispatch-workflow@v2.0.0
+        with:
+          dispatch-method: workflow_dispatch
+          repo: test-automerger
+          owner: MohammadiIram
+          workflow: PR.yaml  # The workflow file
+          ref: ${{ github.event.pull_request.base.ref }}
+          token: ${{ secrets.PAT_TOKEN }}
+          workflow-inputs: |
+            {
+              "pr_id": "${{ github.event.pull_request.number }}"
+            }
