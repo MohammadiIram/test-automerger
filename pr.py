@@ -42,14 +42,24 @@ def get_jira_id_from_pr(pr):
     body = pr.get('body', '')
 
     # Ensure title and body are strings
-    if not isinstance(title, str):
-        title = ''
-    if not isinstance(body, str):
-        body = ''
+    title = str(title)
+    body = str(body)
 
     jira_id_pattern = r'[A-Z]+-\d+'
-    jira_id_match = re.search(jira_id_pattern, title) or re.search(jira_id_pattern, body)
-    return jira_id_match.group(0) if jira_id_match else None
+    
+   # Check the title for a JIRA ID
+    jira_id_match = re.search(jira_id_pattern, title)
+    if jira_id_match:
+        return jira_id_match.group(0)  # Return the found JIRA ID
+
+    # Check the body for a JIRA ID
+    jira_id_match = re.search(jira_id_pattern, body)
+    if jira_id_match:
+        return jira_id_match.group(0)  # Return the found JIRA ID
+
+    # Return a message if no JIRA ID was found
+    #return "No JIRA ID found in PR"
+    return None
 
 
 def get_jira_issue_details(jira_id, jira_server):
