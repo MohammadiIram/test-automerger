@@ -1,5 +1,3 @@
-# .github/workflows/your-workflow.yml
-
 name: Process PR
 on:
   workflow_dispatch:
