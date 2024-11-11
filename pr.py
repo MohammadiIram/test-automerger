@@ -16,12 +16,6 @@ RESET = '\033[0m'
 JIRA_API_TOKEN = os.getenv('JIRA_API_TOKEN')
 GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 
-# Hard-coded JIRA server URL
-JIRA_SERVER = 'https://issues.redhat.com'
-
-# GitHub API base URL
-GITHUB_API_URL = 'https://api.github.com'
-
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process a specific PR based on PR ID.")
     parser.add_argument('--pr-id', required=True, type=int, help="The ID of the PR to process.")
@@ -31,6 +25,13 @@ def load_config():
     try:
         with open('repos.json', 'r') as file:
             config = json.load(file)
+        
+        # Check if required keys are present
+        required_keys = ["org", "components", "jira_server", "jira_project", "jira_priority"]
+        for key in required_keys:
+            if key not in config:
+                raise KeyError(f"The '{key}' key is missing in 'repos.json'.")
+        
         return config
     except FileNotFoundError:
         print(f"{RED}Error: 'repos.json' file not found in the GitHub Actions repository.{RESET}")
@@ -47,11 +48,11 @@ def get_jira_id_from_pr(pr):
     jira_id_match = re.search(jira_id_pattern, title) or re.search(jira_id_pattern, body)
     return jira_id_match.group(0) if jira_id_match else None
 
-def get_jira_issue_details(jira_id, max_retries=3):
+def get_jira_issue_details(jira_id, jira_server):
     headers = {'Authorization': f'Bearer {JIRA_API_TOKEN}'}
-    url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}'
+    url = f'{jira_server}/rest/api/2/issue/{jira_id}'
 
-    for attempt in range(max_retries):
+    for attempt in range(3):
         try:
             response = requests.get(url, headers=headers)
             response.raise_for_status()
@@ -60,19 +61,19 @@ def get_jira_issue_details(jira_id, max_retries=3):
             if response.status_code in {403, 404}:
                 print(f"{RED}Error {response.status_code}: {jira_id} - {err}{RESET}")
                 return None
-            print(f"{RED}HTTP error: {err}. Retrying ({attempt + 1}/{max_retries})...{RESET}")
+            print(f"{RED}HTTP error: {err}. Retrying ({attempt + 1}/3)...{RESET}")
             time.sleep(2 ** attempt)
     return None
 
 def check_pr_mergeable(org, repo, pr_number):
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}'
+    url = f'https://api.github.com/repos/{org}/{repo}/pulls/{pr_number}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     response = requests.get(url, headers=headers)
     response.raise_for_status()
     return response.json().get('mergeable', False)
 
 def merge_pr(org, repo, pr_number):
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}/merge'
+    url = f'https://api.github.com/repos/{org}/{repo}/pulls/{pr_number}/merge'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     data = {
         'commit_title': f'Merge PR #{pr_number}',
@@ -94,16 +95,13 @@ def check_authors(org, pr):
 
 def fetch_pr_details_by_id(org, repo, pr_id):
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_id}'
+    url = f'https://api.github.com/repos/{org}/{repo}/pulls/{pr_id}'
     response = requests.get(url, headers=headers)
     if response.status_code == 404:
         print(f"Error: PR #{pr_id} not found in the repository {org}/{repo}.")
         return None
-    response.raise_for_status()  # Raise error for other HTTP errors
-    pr_details = response.json()
-    return pr_details
-
-
+    response.raise_for_status()
+    return response.json()
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -112,23 +110,26 @@ if __name__ == "__main__":
     # Load configuration from repos.json
     config = load_config()
     org = config['org']
-    repo = config['repos'][0]['name']  
+    jira_server = config.get('jira_server', 'https://issues.redhat.com')
 
-    branch_name = os.getenv('GITHUB_REF').split('/')[-1]
-
-    # Process the specific PR based on the passed PR ID
-    pr_details = fetch_pr_details_by_id(org, repo, pr_id)  
-    if pr_details and check_authors(org, pr_details):
-        jira_id = get_jira_id_from_pr(pr_details)
-        if jira_id:
-            jira_details = get_jira_issue_details(jira_id)
-            if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                if check_pr_mergeable(org, repo, pr_id):
-                    merge_pr(org, repo, pr_id)
+    # Iterate over each component and its repositories
+    for component in config.get('components', []):
+        for repo in component.get('rhds_repos', []):
+            # Process the specific PR based on the passed PR ID
+            pr_details = fetch_pr_details_by_id(org, repo, pr_id)
+            if pr_details and check_authors(org, pr_details):
+                jira_id = get_jira_id_from_pr(pr_details)
+                if jira_id:
+                    jira_details = get_jira_issue_details(jira_id, jira_server)
+                    priority = jira_details.get('fields', {}).get('priority', {}).get('name')
+                    if jira_details and priority == config['jira_priority']:
+                        if check_pr_mergeable(org, repo, pr_id):
+                            merge_pr(org, repo, pr_id)
+                        else:
+                            print(f"{RED}PR #{pr_id} is not mergeable.{RESET}")
+                    else:
+                        print(f"{RED}Skipping PR #{pr_id}: JIRA {jira_id} not a {config['jira_priority']} priority.{RESET}")
                 else:
-                    print(f"{RED}PR #{pr_id} is not mergeable.{RESET}")
+                    print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping.{RESET}")
             else:
-                print(f"{RED}Skipping PR #{pr_id}: JIRA {jira_id} not a Blocker.{RESET}")
-        else:
-            print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping.{RESET}")
-
+                print(f"{RED}Skipping PR #{pr_id}: PR details not found or author verification failed.{RESET}")
