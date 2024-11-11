@@ -98,18 +98,56 @@ def check_pr_mergeable(org, repo, pr_number):
     response.raise_for_status()
     return response.json().get('mergeable', False)
 
-def merge_pr(org, repo, pr_number):
+def merge_pr(org, repo, pr, pr_number):
     url = f'https://api.github.com/repos/{org}/{repo}/pulls/{pr_number}/merge'
-    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
+    headers = {
+        'Authorization': f'token {GITHUB_TOKEN}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
     data = {
         'commit_title': f'Merge PR #{pr_number}',
-        'commit_message': 'Auto-merged due to Blocker priority JIRA issue.'
+        'commit_message': 'Merged automatically because the linked JIRA issue has Blocker priority.'
     }
+
     response = requests.put(url, headers=headers, json=data)
+
     if response.status_code == 200:
-        print(f"{GREEN}PR #{pr_number} merged successfully.{RESET}")
+        print(f"{GREEN}PR #{pr_number} in repo {repo} was successfully merged.{RESET}")
+
+        # After merging, add a comment to the JIRA issue
+        jira_id = get_jira_id_from_pr(pr)  # Obtain the JIRA ID from the PR details
+        if jira_id:
+            pr_link = f"https://github.com/{org}/{repo}/pull/{pr_number}"  # Construct the PR link
+            comment_on_jira_issue(jira_id, "The associated pull request has been merged.", pr_link)
     else:
-        print(f"{RED}Failed to merge PR #{pr_number}. Response: {response.status_code} - {response.json()}{RESET}")
+        print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
+
+def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
+    headers = {
+        'Authorization': f'Bearer {JIRA_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}/comment'
+    full_comment = f"{comment}\n\n[View Pull Request]({pr_link})"  # Add the PR link to the comment
+    data = {
+        'body': full_comment
+    }
+
+    for attempt in range(max_retries):
+        try:
+            response = requests.post(url, headers=headers, json=data)
+            response.raise_for_status()
+            print(f"{GREEN}Comment added to JIRA issue {jira_id}.{RESET}")
+            return
+        except requests.exceptions.HTTPError as err:
+            print(f"{RED}Failed to add comment to JIRA issue {jira_id}: {err}{RESET}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+        except Exception as err:
+            print(f"{RED}Unexpected error while commenting on JIRA issue {jira_id}: {err}{RESET}")
+            time.sleep(2 ** attempt)  # Exponential backoff
+
+    print(f"{RED}Failed to add comment to JIRA issue {jira_id} after {max_retries} attempts.{RESET}")
+
 
 def is_user_in_org(org, username):
     """Check if a user is a member of the given GitHub organization."""
@@ -158,11 +196,10 @@ if __name__ == "__main__":
                     if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
                         print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
                         if check_pr_mergeable(org, repo, pr_details['number']):
-                            merge_pr(org, repo, pr_details['number'])
+                            merge_pr(org, repo, pr_details, pr_details['number'])
                         else:
                             print(f"{RED}PR #{pr_details['number']} is not mergeable.{RESET}")
                     else:
                         print(f"{RED}Skipping PR #{pr_details['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
                 else:
                     print(f"{RED}No JIRA ID found in PR #{pr_details['number']}. Skipping.{RESET}")
-
