@@ -41,9 +41,16 @@ def get_jira_id_from_pr(pr):
     title = pr.get('title', '')
     body = pr.get('body', '')
 
+    # Ensure title and body are strings
+    if not isinstance(title, str):
+        title = ''
+    if not isinstance(body, str):
+        body = ''
+
     jira_id_pattern = r'[A-Z]+-\d+'
     jira_id_match = re.search(jira_id_pattern, title) or re.search(jira_id_pattern, body)
     return jira_id_match.group(0) if jira_id_match else None
+
 
 def get_jira_issue_details(jira_id, jira_server):
     headers = {'Authorization': f'Bearer {JIRA_API_TOKEN}'}
