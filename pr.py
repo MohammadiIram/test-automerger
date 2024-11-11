@@ -1,4 +1,5 @@
 import os
+import argparse
 import json
 import requests
 import re
@@ -6,9 +7,7 @@ import subprocess
 import sys
 import time
 import yaml
-import argparse
 
-# ANSI escape codes for color
 GREEN = '\033[92m'
 RED = '\033[91m'
 RESET = '\033[0m'
@@ -22,6 +21,11 @@ JIRA_SERVER = 'https://issues.redhat.com'
 
 # GitHub API base URL
 GITHUB_API_URL = 'https://api.github.com'
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description="Process a specific PR based on PR ID.")
+    parser.add_argument('--pr-id', required=True, type=int, help="The ID of the PR to process.")
+    return parser.parse_args()
 
 def load_releases():
     try:
@@ -53,13 +57,6 @@ def validate_branch(branch, allowed_releases):
         sys.exit(1)
     else:
         print(f"{GREEN}Branch '{branch}' is valid and allowed to proceed.{RESET}")
-
-def get_pr_details(org, repo, pr_number):
-    url = f'{GITHUB_API_URL}/repos/{org}/{repo}/pulls/{pr_number}'
-    headers = {'Authorization': f'token {GITHUB_TOKEN}'}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
 
 def get_jira_id_from_pr(pr):
     title = pr.get('title', '')
@@ -106,33 +103,39 @@ def merge_pr(org, repo, pr_number):
     else:
         print(f"{RED}Failed to merge PR #{pr_number}. Response: {response.status_code} - {response.json()}{RESET}")
 
+def check_authors(org, pr):
+    pr_author = pr['user']['login']
+    if not is_user_in_org(org, pr_author):
+        print(f"{RED}PR author '{pr_author}' not in '{org}' org.{RESET}")
+        return False
+    print(f"{GREEN}PR author '{pr_author}' verified in org.{RESET}")
+    return True
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Process a GitHub pull request by ID.")
-    parser.add_argument("--pr-id", type=int, required=True, help="The ID of the pull request to process.")
-    args = parser.parse_args()
-
+    args = parse_arguments()
     pr_id = args.pr_id
-    branch_name = os.getenv('GITHUB_REF').split('/')[-1]
-
-    allowed_releases = load_releases()
-    validate_branch(branch_name, allowed_releases)
 
     # Load configuration from repos.json
     config = load_config()
-    org = config['org']  # Get organization from repos.json
-    repo = config['repos'][0]['name'] 
-    # Get PR details and process
-    pr = get_pr_details(org, repo, pr_id)
-    
-    jira_id = get_jira_id_from_pr(pr)
-    if jira_id:
-        jira_details = get_jira_issue_details(jira_id)
-        if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-            if check_pr_mergeable(org, repo, pr_id):
-                merge_pr(org, repo, pr_id)
+    org = config['org']
+    repo = config['repos'][0]['name']  
+
+    branch_name = os.getenv('GITHUB_REF').split('/')[-1]
+    allowed_releases = load_releases()
+    validate_branch(branch_name, allowed_releases)
+
+    # Process the specific PR based on the passed PR ID
+    pr_details = fetch_pr_details(org, repo, pr_id)
+    if pr_details and check_authors(org, pr_details):
+        jira_id = get_jira_id_from_pr(pr_details)
+        if jira_id:
+            jira_details = get_jira_issue_details(jira_id)
+            if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
+                if check_pr_mergeable(org, repo, pr_id):
+                    merge_pr(org, repo, pr_id)
+                else:
+                    print(f"{RED}PR #{pr_id} is not mergeable.{RESET}")
             else:
-                print(f"{RED}PR #{pr_id} is not mergeable.{RESET}")
+                print(f"{RED}Skipping PR #{pr_id}: JIRA {jira_id} not a Blocker.{RESET}")
         else:
-            print(f"{RED}Skipping PR #{pr_id}: JIRA {jira_id} not a Blocker.{RESET}")
-    else:
-        print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping.{RESET}")
+            print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping.{RESET}")
