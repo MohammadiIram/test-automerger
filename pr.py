@@ -144,7 +144,7 @@ if __name__ == "__main__":
     # Load configuration from repos.json
     config = load_config()
     org = config['org']
-    jira_server = config.get('jira_server', 'https://issues.redhat.com')
+    JIRA_SERVER = config.get('jira_server', 'https://issues.redhat.com')
 
     # Iterate over each component and its repositories
     for component in config.get('components', []):
