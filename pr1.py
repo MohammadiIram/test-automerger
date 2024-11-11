@@ -191,19 +191,39 @@ if __name__ == "__main__":
     org = config['org']
     JIRA_SERVER = config.get('jira_server', 'https://issues.redhat.com')
 
-    # Directly fetch PR details for the specific repository and PR ID
-    pr_details = fetch_pr_details_by_id(org, repo, pr_id)
-    
-    if pr_details and check_authors(org, pr_details):
-        jira_id = get_jira_id_from_pr(pr_details)
-        if jira_id:
-            jira_details = get_jira_issue_details(jira_id)
-            if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker.{RESET}")
-                merge_pr(org, repo, pr_details, pr_id)
+    # Flag to indicate if PR has been processed
+    processed_pr = False
+
+    for component in config.get('components', []):
+        for repo in component.get('rhds_repos', []):
+            # Skip if the PR is already processed
+            if processed_pr:
+                break
+            
+            pr_details = fetch_pr_details_by_id(org, repo, pr_id)
+            if pr_details:
+                # Only perform the following checks if the PR is still open
+                if pr_details.get('state') != 'open':
+                    print(f"{GREEN}PR #{pr_id} in {repo} is not open. Skipping.{RESET}")
+                    continue
+
+                # Process checks
+                if check_authors(org, pr_details):
+                    jira_id = get_jira_id_from_pr(pr_details)
+                    if jira_id:
+                        jira_details = get_jira_issue_details(jira_id)
+                        if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
+                            print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
+                            if check_pr_mergeable(org, repo, pr_details['number']):
+                                merge_pr(org, repo, pr_details, pr_details['number'])
+                                processed_pr = True  # Flag to indicate PR is merged, no need to check further
+                            else:
+                                print(f"{RED}PR #{pr_details['number']} is not mergeable.{RESET}")
+                        else:
+                            print(f"{RED}Skipping PR #{pr_details['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
+                    else:
+                        print(f"{RED}No JIRA ID found in PR #{pr_details['number']}. Skipping.{RESET}")
+                else:
+                    print(f"{RED}PR #{pr_details['number']} author is not in org. Skipping.{RESET}")
             else:
-                print(f"{RED}JIRA issue {jira_id} does not have 'Blocker' priority. Skipping merge.{RESET}")
-        else:
-            print(f"{RED}No JIRA ID found in PR #{pr_id} in repo {repo}. Skipping merge.{RESET}")
-    else:
-        print(f"{RED}Skipping PR #{pr_id} in repo {repo}. Check author or PR state.{RESET}")
+                print(f"Error: PR #{pr_id} not found in repo {repo}. Skipping.")
