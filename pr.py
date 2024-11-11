@@ -160,11 +160,20 @@ def is_user_in_org(org, username):
 
 def check_authors(org, pr):
     pr_author = pr['user']['login']
+    
+    # First, check if the PR is open (not merged or closed)
+    if pr.get('state') != 'open':
+        print(f"{GREEN}PR #{pr['number']} is not open. Skipping author check.{RESET}")
+        return True  # If it's not open 
+        
+    # Now, proceed with organization membership check if the PR is still open
     if not is_user_in_org(org, pr_author):
-        print(f"{RED}PR author '{pr_author}' not in '{org}' org.{RESET}")
-        return False
-    print(f"{GREEN}PR author '{pr_author}' verified in org.{RESET}")
+        print(f"{RED}PR author '{pr_author}' not in '{org}' org. Merging not allowed. Stopping further checks.{RESET}")
+        return False  # Stop here, do not proceed further if the author is not in the org
+
+    print(f"{GREEN}PR author '{pr_author}' verified in org. Proceeding with merge.{RESET}")
     return True
+
 
 def fetch_pr_details_by_id(org, repo, pr_id):
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
