@@ -152,16 +152,17 @@ if __name__ == "__main__":
             # Process the specific PR based on the passed PR ID
             pr_details = fetch_pr_details_by_id(org, repo, pr_id)
             if pr_details and check_authors(org, pr_details):
-                jira_id = get_jira_id_from_pr(pr)
+                jira_id = get_jira_id_from_pr(pr_details)
                 if jira_id:
                     jira_details = get_jira_issue_details(jira_id)
                     if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                        print(f"{GREEN}Merging PR #{pr['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
-                        if check_pr_mergeable(org, repo, pr['number']):
-                            merge_pr(org, repo, pr['number'])
+                        print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
+                        if check_pr_mergeable(org, repo, pr_details['number']):
+                            merge_pr(org, repo, pr_details['number'])
                         else:
-                            print(f"{RED}PR #{pr['number']} is not mergeable.{RESET}")
+                            print(f"{RED}PR #{pr_details['number']} is not mergeable.{RESET}")
                     else:
-                        print(f"{RED}Skipping PR #{pr['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
+                        print(f"{RED}Skipping PR #{pr_details['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
                 else:
-                    print(f"{RED}No JIRA ID found in PR #{pr['number']}. Skipping.{RESET}")
+                    print(f"{RED}No JIRA ID found in PR #{pr_details['number']}. Skipping.{RESET}")
+
