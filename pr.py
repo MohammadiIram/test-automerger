@@ -205,14 +205,20 @@ if __name__ == "__main__":
                     jira_id = get_jira_id_from_pr(pr_details)
                     if jira_id:
                         jira_details = get_jira_issue_details(jira_id)
-                        if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                            print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
-                            if check_pr_mergeable(org, repo, pr_id):
+                        if jira_details:
+                            # Check if JIRA issue is not a Blocker before proceeding
+                            if 'Blocker' not in [priority['name'] for priority in jira_details.get('fields', {}).get('priority', {}).values()]:
+                                print(f"{RED}JIRA issue {jira_id} is not a Blocker. Skipping merge.{RESET}")
+                                break
+                            
+                            pr_merged = check_pr_mergeable(org, repo, pr_id)
+                            if pr_merged:
                                 merge_pr(org, repo, pr_details, pr_id)
-                                pr_merged = True  # Mark the PR as merged
                             else:
-                                print(f"{RED}PR #{pr_id} in repo {repo} is not mergeable.{RESET}")
+                                print(f"{RED}PR #{pr_id} is not mergeable in repo {repo}.")
+                        else:
+                            print(f"{RED}Failed to get JIRA details for issue {jira_id}.")
                     else:
-                        print(f"{RED}JIRA ID not found in PR #{pr_id}. Skipping merge.{RESET}")
+                        print(f"{RED}No JIRA ID found in PR {pr_id} in repo {repo}. Skipping.{RESET}")
                 else:
-                    print(f"{RED}Skipping PR #{pr_id} as it is not Blocker priority.{RESET}")
+                    print(f"{RED}Failed to process PR #{pr_id}. Skipping.{RESET}")
