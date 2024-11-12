@@ -24,25 +24,24 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
-          python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }}
+          output=$(python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
+          echo "$output" > script_output.txt
 
       # Generate summary output
       - name: Generate Summary Output
         id: summary
         run: |
-          # Read the output from the script and remove ANSI escape codes
-          output=$(cat script_output.txt | sed 's/\x1B\[[0-9;]*m//g')
-
-          # Replace valid messages with checkmarks and invalid messages with cross marks
+          # Assume $output is the direct result from the script execution
           formatted_output=$(echo "$output" | sed -E 's/(valid.*|allowed.*)/✅ &/g; s/(No JIRA ID.*|not a member.*)/❌ &/g')
-
+      
           # Prepare the Slack message with user or channel mentions
-          slack_message="*PR ID:* ${GITHUB_EVENT_INPUTS_PR_ID}\n*Repository:* ${GITHUB_EVENT_INPUTS_REPO}\n*Output:*\n${formatted_output}\n\n  :here!" 
-
+          slack_message="*PR ID:* ${GITHUB_EVENT_INPUTS_PR_ID}\n*Repository:* ${GITHUB_EVENT_INPUTS_REPO}\n*Output:*\n${formatted_output}\n\n<!channel>  :here!" 
+      
           # Prepare the message for Slack using GITHUB_OUTPUT
           echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
           echo "$slack_message" >> $GITHUB_OUTPUT
           echo 'EOF' >> $GITHUB_OUTPUT
+
           
       # Slack Notification on Success
       - name: Slack Notification on Success
