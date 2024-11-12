@@ -30,6 +30,7 @@ jobs:
 
       - name: Generate and Clean Summary Output
         id: summary
+        shell: bash
         run: |
           # Capture output from the script
           output=$(cat script_output.txt)
@@ -41,39 +42,28 @@ jobs:
           fi
 
           formatted_output=$(echo "$output" | sed -E 's/\x1b\[[0-9;]*m//g')
-
-          # Remove commit information (if present in the output)
           formatted_output=$(echo "$formatted_output" | sed '/Commit/d')
 
-          # Get PR ID and Repo name from the input
           pr_id="${{ github.event.inputs.pr_id }}"
           repo="${{ github.event.inputs.repo }}"
 
-          # Attempt to extract the JIRA ID from the output, if it exists
           jira_id=$(echo "$formatted_output" | grep -oE 'RHOAIENG-[0-9]+')
           jira_url="https://issues.redhat.com/browse/${jira_id}"
 
-          # Construct the PR URL using the provided repo name
           pr_url="https://github.com/rhoai-rhtap/${repo}/pull/${pr_id}"
 
-          # Conditionally include the JIRA link in the Slack message
           if [ -n "$jira_id" ]; then
             jira_message="*JIRA Issue:* <${jira_url}|${jira_id}>\n"
           else
             jira_message=""
           fi
 
-          # Prepare the Slack message with cleaner formatting
           slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n${jira_message}*Output:*\n${formatted_output}\n:here!"
-          #slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n${formatted_output}\n:here!"
 
+          echo "slack-message<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$slack_message" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-          # Set the message for Slack using GITHUB_OUTPUT
-          {
-            echo "slack-message<<EOF"
-            echo -e "$slack_message"
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
 
       # Slack Notification on Success
       - name: Slack Notification on Success
