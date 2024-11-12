@@ -219,7 +219,3 @@ if __name__ == "__main__":
                     else:
                         print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping merge.{RESET}")
 
-
-    # Final step: confirm if the PR has been successfully merged
-    if not pr_merged:
-        print(f"{RED}PR #{pr_id} was not merged due to missing checks or issues.{RESET}")
