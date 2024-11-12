@@ -60,10 +60,11 @@ jobs:
 
           slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n${jira_message}*Output:*\n${formatted_output}\n:here!"
 
-          echo "slack-message<<EOF" >> $GITHUB_OUTPUT
-          echo -e "$slack_message" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
+          {
+            echo "slack-message<<EOF"
+            echo -e "$slack_message"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
       # Slack Notification on Success
       - name: Slack Notification on Success
