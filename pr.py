@@ -210,7 +210,7 @@ if __name__ == "__main__":
                         if jira_details:
                             # Check if JIRA issue priority is "Blocker" before proceeding
                             if jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                                print(f"{GREEN}Merging PR #{pr_id} in repo {repo}...{RESET}")
+                                print(f"{GREEN}Merging PR #{pr_id} in repo {repo} because JIRA {jira_id} is a Blocker issue...{RESET}")
                                 merge_pr(org, repo, pr_details)  # Pass the 'pr_details' object
                             else:
                                 print(f"{RED}JIRA issue {jira_id} is not a Blocker. Skipping merge.{RESET}")
