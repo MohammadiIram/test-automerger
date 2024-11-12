@@ -6,17 +6,21 @@ on:
         description: 'PR ID'
         required: true
         type: string
+      repo:
+        description: 'Repository name'
+        required: true
+        type: string
 
 jobs:
-  another_job:
+  process_pr:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Run Python script with PR ID
+      - name: Run Python script with PR ID and Repo
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
-          python pr.py --pr-id ${{ github.event.inputs.pr_id }}
+          python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }}
