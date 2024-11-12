@@ -28,7 +28,7 @@ jobs:
           echo "Script output: $output"
           echo "$output" > script_output.txt
 
-      - name: Generate Summary Output
+      - name: Generate and Clean Summary Output
         id: summary
         run: |
           # Capture output from the script
@@ -39,9 +39,12 @@ jobs:
             echo "No output from script."
             output="No relevant information generated."
           fi
-        
+
           formatted_output=$(echo "$output" | sed -E 's/\x1b\[[0-9;]*m//g')
-        
+
+          # Remove commit information (if present in the output)
+          formatted_output=$(echo "$formatted_output" | sed '/Commit/d')
+
           # Get PR ID and Repo name from the input
           pr_id="${{ github.event.inputs.pr_id }}"
           repo="${{ github.event.inputs.repo }}"
@@ -51,7 +54,7 @@ jobs:
 
           # Prepare the Slack message with cleaner formatting
           slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n\n${formatted_output}\n\n:here!"
-        
+
           # Set the message for Slack using GITHUB_OUTPUT
           echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
           echo "$slack_message" >> $GITHUB_OUTPUT
@@ -68,7 +71,6 @@ jobs:
           SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
           SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
           SLACK_COLOR: '#36a64f'  # Green color for success
-          SLACK_INCLUDE_COMMIT: false
 
       # Slack Notification on Failure
       - name: Slack Notification on Failure
@@ -81,4 +83,3 @@ jobs:
           SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
           SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
           SLACK_COLOR: '#ff0000'  # Red color for failure
-          SLACK_INCLUDE_COMMIT: false
