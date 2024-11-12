@@ -165,7 +165,7 @@ def check_authors(org, pr):
         print(f"{RED}PR author '{pr_author}' not in '{org}' org. Merging not allowed. Stopping further checks.{RESET}")
         return False  # Stop here, do not proceed further if the author is not in the org
 
-    print(f"{GREEN}PR author '{pr_author}' verified in org. Proceeding with merge.{RESET}")
+    print(f"{GREEN}PR author '{pr_author}' verified in org. Proceeding with other checks.{RESET}")
     return True
 
 
