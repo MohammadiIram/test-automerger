@@ -27,16 +27,7 @@ jobs:
           output=$(python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
           echo "Script output: $output"
           echo "$output" > script_output.txt
-
-      # Run the Python script and capture the output in a file
-      - name: Run Python Script
-        id: run_script
-        env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
-          JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
-        run: |
-          python test.py --branch "${{ github.event.inputs.branch }}" | tee script_output.txt
-      
+          
       - name: Generate and Clean Summary Output
         id: summary
         run: |
@@ -78,7 +69,6 @@ jobs:
           SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
           SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
           SLACK_COLOR: '#36a64f'  # Green color for success
-
       # Slack Notification on Failure
       - name: Slack Notification on Failure
         if: ${{ failure() }}
