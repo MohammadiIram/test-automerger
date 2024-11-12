@@ -50,8 +50,8 @@ jobs:
           # Construct the PR URL using the provided repo name
           pr_url="https://github.com/${repo}/pull/${pr_id}"
         
-          # Prepare the Slack message
-          slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n${formatted_output}\n\n :here!"
+          # Prepare the Slack message with cleaner formatting
+          slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n\n${formatted_output}\n\n:here!"
         
           # Set the message for Slack using GITHUB_OUTPUT
           echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
