@@ -194,9 +194,15 @@ if __name__ == "__main__":
     org = config['org']
     JIRA_SERVER = config.get('jira_server', 'https://issues.redhat.com')
 
-    # Iterate over each component and its repositories
+    # Add a flag to track if a PR has been merged
+    pr_merged = False
+    
     for component in config.get('components', []):
         for repo in component.get('rhds_repos', []):
+            # Skip further checks if a PR has been merged
+            if pr_merged:
+                break
+    
             # Process the specific PR based on the passed PR ID
             pr_details = fetch_pr_details_by_id(org, repo, pr_id)
             if pr_details and check_authors(org, pr_details):
@@ -207,6 +213,8 @@ if __name__ == "__main__":
                         print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
                         if check_pr_mergeable(org, repo, pr_details['number']):
                             merge_pr(org, repo, pr_details, pr_details['number'])
+                            pr_merged = True  # Set the flag to True after a successful merge
+                            break  # Exit the loop after merging
                         else:
                             print(f"{RED}PR #{pr_details['number']} is not mergeable.{RESET}")
                     else:
