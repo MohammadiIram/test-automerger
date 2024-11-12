@@ -206,19 +206,18 @@ if __name__ == "__main__":
                     if jira_id:
                         jira_details = get_jira_issue_details(jira_id)
                         if jira_details:
-                            # Check if JIRA issue is not a Blocker before proceeding
-                            if 'Blocker' not in [priority['name'] for priority in jira_details.get('fields', {}).get('priority', {}).values()]:
-                                print(f"{RED}JIRA issue {jira_id} is not a Blocker. Skipping merge.{RESET}")
-                                break
-                            
-                            pr_merged = check_pr_mergeable(org, repo, pr_id)
-                            if pr_merged:
-                                merge_pr(org, repo, pr_details, pr_id)
+                            # Check if JIRA issue priority is "Blocker" before proceeding
+                            if jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
+                                print(f"{GREEN}Merging PR #{pr_id} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
+                                if check_pr_mergeable(org, repo, pr_id):
+                                    merge_pr(org, repo, pr_id)
+                                else:
+                                    print(f"{RED}PR #{pr_id} is not mergeable.{RESET}")
                             else:
-                                print(f"{RED}PR #{pr_id} is not mergeable in repo {repo}.")
+                                print(f"{RED}Skipping PR #{pr_id} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
                         else:
-                            print(f"{RED}Failed to get JIRA details for issue {jira_id}.")
+                            print(f"{RED}No details found for JIRA issue {jira_id}. Skipping.{RESET}")
                     else:
-                        print(f"{RED}No JIRA ID found in PR {pr_id} in repo {repo}. Skipping.{RESET}")
-                else:
-                    print(f"{RED}Failed to process PR #{pr_id}. Skipping.{RESET}")
+                        print(f"{RED}No JIRA ID found for PR #{pr_id}. Skipping.{RESET}")
+
+                            
