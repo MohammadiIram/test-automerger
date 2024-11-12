@@ -96,7 +96,7 @@ def check_pr_mergeable(org, repo, pr_number):
     response.raise_for_status()
     return response.json().get('mergeable', False)
 
-def merge_pr(org, repo, pr, pr_number):
+def merge_pr(org, repo, pr_number):
     url = f'https://api.github.com/repos/{org}/{repo}/pulls/{pr_number}/merge'
     headers = {
         'Authorization': f'token {GITHUB_TOKEN}',
