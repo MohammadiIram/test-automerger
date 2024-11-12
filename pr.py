@@ -16,6 +16,7 @@ GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process a specific PR based on PR ID.")
     parser.add_argument('--pr-id', required=True, type=int, help="The ID of the PR to process.")
+    parser.add_argument('--repo', required=True, help="The name of the repository.")
     return parser.parse_args()
 
 def load_config():
@@ -57,10 +58,7 @@ def get_jira_id_from_pr(pr):
     if jira_id_match:
         return jira_id_match.group(0)  # Return the found JIRA ID
 
-    # Return a message if no JIRA ID was found
-    #return "No JIRA ID found in PR"
     return None
-
 
 def get_jira_issue_details(jira_id, max_retries=3):
     headers = {
@@ -128,7 +126,6 @@ def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
         'Content-Type': 'application/json'
     }
     url = f'{JIRA_SERVER}/rest/api/2/issue/{jira_id}/comment'
-    # Comment with only the PR link on a new line
     full_comment = f"{comment}\n\n{pr_link}"
     data = {
         'body': full_comment
@@ -155,18 +152,15 @@ def is_user_in_org(org, username):
     url = f'https://api.github.com/orgs/{org}/members/{username}'
     headers = {'Authorization': f'token {GITHUB_TOKEN}'}
     response = requests.get(url, headers=headers)
-    # 204 No Content status code indicates membership
     return response.status_code == 204
 
 def check_authors(org, pr):
     pr_author = pr['user']['login']
     
-    # First, check if the PR is open (not merged or closed)
     if pr.get('state') != 'open':
         print(f"{GREEN}PR #{pr['number']} is not open. Skipping author check.{RESET}")
         return True  # If it's not open 
         
-    # Now, proceed with organization membership check if the PR is still open
     if not is_user_in_org(org, pr_author):
         print(f"{RED}PR author '{pr_author}' not in '{org}' org. Merging not allowed. Stopping further checks.{RESET}")
         return False  # Stop here, do not proceed further if the author is not in the org
@@ -188,36 +182,37 @@ def fetch_pr_details_by_id(org, repo, pr_id):
 if __name__ == "__main__":
     args = parse_arguments()
     pr_id = args.pr_id
+    repo = args.repo  # Get repository name from the argument
 
     # Load configuration from repos.json
     config = load_config()
     org = config['org']
     JIRA_SERVER = config.get('jira_server', 'https://issues.redhat.com')
 
-    # Add a flag to track if a PR has been merged
     pr_merged = False
     
+    # Loop through the components and repositories in the configuration
     for component in config.get('components', []):
-        for repo in component.get('rhds_repos', []):
+        for repo_config in component.get('rhds_repos', []):
             # Skip further checks if a PR has been merged
             if pr_merged:
                 break
     
-            # Process the specific PR based on the passed PR ID
-            pr_details = fetch_pr_details_by_id(org, repo, pr_id)
-            if pr_details and check_authors(org, pr_details):
-                jira_id = get_jira_id_from_pr(pr_details)
-                if jira_id:
-                    jira_details = get_jira_issue_details(jira_id)
-                    if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
-                        print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
-                        if check_pr_mergeable(org, repo, pr_details['number']):
-                            merge_pr(org, repo, pr_details, pr_details['number'])
-                            pr_merged = True  # Set the flag to True after a successful merge
-                            break  # Exit the loop after merging
-                        else:
-                            print(f"{RED}PR #{pr_details['number']} is not mergeable.{RESET}")
+            # Process the specific PR based on the passed PR ID and repository
+            if repo_config == repo:
+                pr_details = fetch_pr_details_by_id(org, repo, pr_id)
+                if pr_details and check_authors(org, pr_details):
+                    jira_id = get_jira_id_from_pr(pr_details)
+                    if jira_id:
+                        jira_details = get_jira_issue_details(jira_id)
+                        if jira_details and jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
+                            print(f"{GREEN}Merging PR #{pr_details['number']} in repo {repo} because JIRA {jira_id} is a Blocker issue.{RESET}")
+                            if check_pr_mergeable(org, repo, pr_id):
+                                merge_pr(org, repo, pr_details, pr_id)
+                                pr_merged = True  # Mark the PR as merged
+                            else:
+                                print(f"{RED}PR #{pr_id} in repo {repo} is not mergeable.{RESET}")
                     else:
-                        print(f"{RED}Skipping PR #{pr_details['number']} as the JIRA issue {jira_id} is not a Blocker.{RESET}")
+                        print(f"{RED}JIRA ID not found in PR #{pr_id}. Skipping merge.{RESET}")
                 else:
-                    print(f"{RED}No JIRA ID found in PR #{pr_details['number']}. Skipping.{RESET}")
+                    print(f"{RED}Skipping PR #{pr_id} as it is not Blocker priority.{RESET}")
