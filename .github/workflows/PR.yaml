@@ -40,16 +40,15 @@ jobs:
             output="No relevant information generated."
           fi
         
-          # Format the output (remove ANSI escape codes if any)
-          formatted_output=$(echo "$output" | sed -E 's/(valid.*|allowed.*)/✅ &/g; s/(No JIRA ID.*|not a member.*)/❌ &/g')
+          formatted_output=$(echo "$output" | sed -E 's/\x1b\[[0-9;]*m//g')
         
           # Get PR ID and Repo name from the input
           pr_id="${{ github.event.inputs.pr_id }}"
           repo="${{ github.event.inputs.repo }}"
         
           # Construct the PR URL using the provided repo name
-          pr_url="https://github.com/${repo}/pull/${pr_id}"
-        
+          pr_url="https://github.com/rhoai-rhtap/${repo}/pull/${pr_id}"
+
           # Prepare the Slack message with cleaner formatting
           slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n\n${formatted_output}\n\n:here!"
         
@@ -69,6 +68,7 @@ jobs:
           SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
           SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
           SLACK_COLOR: '#36a64f'  # Green color for success
+          SLACK_INCLUDE_COMMIT: false
 
       # Slack Notification on Failure
       - name: Slack Notification on Failure
@@ -81,3 +81,4 @@ jobs:
           SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
           SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
           SLACK_COLOR: '#ff0000'  # Red color for failure
+          SLACK_INCLUDE_COMMIT: false
