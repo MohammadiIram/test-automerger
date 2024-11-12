@@ -96,7 +96,8 @@ def check_pr_mergeable(org, repo, pr_number):
     response.raise_for_status()
     return response.json().get('mergeable', False)
 
-def merge_pr(org, repo, pr_number):
+def merge_pr(org, repo, pr):
+    pr_number = pr['number']  # Extract PR number from the 'pr' object
     url = f'https://api.github.com/repos/{org}/{repo}/pulls/{pr_number}/merge'
     headers = {
         'Authorization': f'token {GITHUB_TOKEN}',
@@ -119,6 +120,7 @@ def merge_pr(org, repo, pr_number):
             comment_on_jira_issue(jira_id, "The associated pull request has been merged.", pr_link)
     else:
         print(f"{RED}Failed to merge PR #{pr_number} in repo {repo}. Response: {response.status_code} - {response.json()}{RESET}")
+
 
 def comment_on_jira_issue(jira_id, comment, pr_link, max_retries=3):
     headers = {
@@ -209,14 +211,14 @@ if __name__ == "__main__":
                             # Check if JIRA issue priority is "Blocker" before proceeding
                             if jira_details.get('fields', {}).get('priority', {}).get('name') == 'Blocker':
                                 print(f"{GREEN}Merging PR #{pr_id} in repo {repo}...{RESET}")
-                                merge_pr(org, repo, pr_id)
-                                pr_merged = True  # Ensure merging is done only once
+                                merge_pr(org, repo, pr_details)  # Pass the 'pr_details' object
                             else:
                                 print(f"{RED}JIRA issue {jira_id} is not a Blocker. Skipping merge.{RESET}")
                         else:
                             print(f"{RED}Unable to fetch JIRA details for {jira_id}. Skipping.{RESET}")
                     else:
                         print(f"{RED}No JIRA ID found in PR #{pr_id}. Skipping merge.{RESET}")
+
 
     # Final step: confirm if the PR has been successfully merged
     if not pr_merged:
