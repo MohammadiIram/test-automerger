@@ -65,6 +65,8 @@ jobs:
 
           # Prepare the Slack message with cleaner formatting
           slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n${jira_message}*Output:*\n${formatted_output}\n:here!"
+          #slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n${formatted_output}\n:here!"
+
 
           # Set the message for Slack using GITHUB_OUTPUT
           {
