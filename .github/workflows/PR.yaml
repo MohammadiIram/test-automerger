@@ -53,13 +53,16 @@ jobs:
           pr_url="https://github.com/rhoai-rhtap/${repo}/pull/${pr_id}"
 
           # Prepare the Slack message with cleaner formatting
-          slack_message="*PR ID:* ${pr_id}`n*Repository:* ${repo}"\n"*PR URL:* ${pr_url}\n*Output:*`n${formatted_output}"\n":here!"
+          #slack_message="*PR ID:* ${pr_id}$'\n'*Repository:* ${repo}$'\n'*PR URL:* ${pr_url}$'\n'*Output:*$'\n'${formatted_output}$'\n'!"
+          slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n${formatted_output}\n:here!"
 
           # Set the message for Slack using GITHUB_OUTPUT
-          echo 'slack-message<<EOF' >> $GITHUB_OUTPUT
-          echo "$slack_message" >> $GITHUB_OUTPUT
-          echo 'EOF' >> $GITHUB_OUTPUT
-
+          {
+            echo "slack-message<<EOF"
+            echo -e "$slack_message"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          
       # Slack Notification on Success
       - name: Slack Notification on Success
         if: ${{ success() }}
