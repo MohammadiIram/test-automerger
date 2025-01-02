@@ -59,24 +59,3 @@ jobs:
           } >> $GITHUB_OUTPUT
           
       # Slack Notification on Success
-      - name: Slack Notification on Success
-        if: ${{ success() }}
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
-          SLACK_USERNAME: "Auto-Merge"
-          SLACK_TITLE: "Merge Summary"
-          SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
-          SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
-          SLACK_COLOR: '#36a64f'  # Green color for success
-      # Slack Notification on Failure
-      - name: Slack Notification on Failure
-        if: ${{ failure() }}
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_NOTIFIER }}
-          SLACK_USERNAME: "Auto-Merge"
-          SLACK_TITLE: "Merge Failed"
-          SLACK_MESSAGE: ${{ steps.summary.outputs.slack-message }}
-          SLACK_ICON: https://avatars.githubusercontent.com/u/95714513?s=400&u=a00afc56cfc57ef9aa0fab1540f70a8507df3e96
-          SLACK_COLOR: '#ff0000'  # Red color for failure
