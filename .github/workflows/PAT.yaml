@@ -16,7 +16,7 @@ on:
         
 permissions:
   contents: write
-   actions: write
+  actions: write
 
 jobs:
   process_pr:
