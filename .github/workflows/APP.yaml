@@ -37,8 +37,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
-          APP_KEY: ${{ secrets.APP_KEY }}
-          APP_ID: ${{ secrets.APP_ID }}
         run: |
           output=$(python GH.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
           echo "Script output: $output"
