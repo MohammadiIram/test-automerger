@@ -10,6 +10,13 @@ on:
         description: 'Repository name'
         required: true
         type: string
+      distinct_id:
+        description: 'Distinct ID'
+        required: false
+        
+permissions:
+  contents: write
+  actions: write
 
 jobs:
   process_pr:
