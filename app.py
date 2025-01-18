@@ -35,6 +35,7 @@ def generate_github_jwt():
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process a specific PR based on PR ID.")
     parser.add_argument('--pr-id', required=True, type=int, help="The ID of the PR to process.")
+    parser.add_argument('--repo', required=True, help="The name of the repository.")
     return parser.parse_args()
 
 def load_config():
