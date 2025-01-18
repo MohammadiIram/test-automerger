@@ -34,7 +34,12 @@ def generate_github_jwt():
         'exp': issued_at + TOKEN_EXPIRATION_SECONDS,
         'iss': GITHUB_APP_ID,
     }
-    return jwt.encode(payload, private_key, algorithm='RS256')
+    jwt_token = jwt.encode(payload, private_key, algorithm='RS256')
+    
+    print(f"Generated JWT: {jwt_token}")  # Debugging line to check the JWT token
+    
+    return jwt_token
+    #return jwt.encode(payload, private_key, algorithm='RS256')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Process a specific PR based on PR ID.")
@@ -208,6 +213,7 @@ def fetch_pr_details_by_id(org, repo, pr_id):
         return None
     response.raise_for_status()
     return response.json()
+
   
 if __name__ == "__main__":
     args = parse_arguments()
