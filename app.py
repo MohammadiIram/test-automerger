@@ -36,7 +36,7 @@ def generate_github_jwt():
     }
     jwt_token = jwt.encode(payload, private_key, algorithm='RS256')
     
-    print(f"Generated JWT: {jwt_token}")  # Debugging line to check the JWT token
+    print(f"Generated GitHub JWT (only for debugging purposes): {jwt_token}")
     
     return jwt_token
     #return jwt.encode(payload, private_key, algorithm='RS256')
