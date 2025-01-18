@@ -35,7 +35,7 @@ jobs:
       - name: Run Python script with PR ID and repo
         id: process_pr_script
         env:
-          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
           output=$(python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
