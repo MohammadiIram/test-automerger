@@ -1,0 +1,75 @@
+name: App PR
+on:
+  workflow_dispatch:
+    inputs:
+      pr_id:
+        description: 'PR ID'
+        required: true
+        type: string
+      repo:
+        description: 'Repository name'
+        required: true
+        type: string
+      distinct_id:
+        description: 'Distinct ID'
+        required: false
+        
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  process_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Generate github-app token
+        id: app-token
+        uses: getsentry/action-github-app-token@v2
+        with:
+          app_id: ${{ secrets.APP_ID }}
+          private_key: ${{ secrets.APP_KEY }}
+
+      - name: Run Python script with PR ID and repo
+        id: process_pr_script
+        env:
+          GITHUB_TOKEN: ${{ steps.get_workflow_token.outputs.token }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
+        run: |
+          output=$(python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
+          echo "Script output: $output"
+          echo "$output" > script_output.txt
+          
+      - name: Generate and Clean Summary Output
+        id: summary
+        run: |
+          # Capture output from the script
+          output=$(cat script_output.txt)
+        
+          # Ensure the output is not empty
+          if [ -z "$output" ]; then
+            echo "No output from script."
+            output="No relevant information generated."
+          fi
+          formatted_output=$(echo "$output" | sed -E 's/\x1b\[[0-9;]*m//g')
+          # Remove commit information (if present in the output)
+          formatted_output=$(echo "$formatted_output" | sed '/Commit/d')
+          # Get PR ID and Repo name from the input
+          pr_id="${{ github.event.inputs.pr_id }}"
+          repo="${{ github.event.inputs.repo }}"
+        
+          # Construct the PR URL using the provided repo name
+          pr_url="https://github.com/rhoai-rhtap/${repo}/pull/${pr_id}"
+          # Prepare the Slack message with cleaner formatting
+          #slack_message="*PR ID:* ${pr_id}$'\n'*Repository:* ${repo}$'\n'*PR URL:* ${pr_url}$'\n'*Output:*$'\n'${formatted_output}$'\n'!"
+          slack_message="*PR ID:* ${pr_id}\n*Repository:* ${repo}\n*PR URL:* ${pr_url}\n*Output:*\n${formatted_output}\n:here!"
+          # Set the message for Slack using GITHUB_OUTPUT
+          {
+            echo "slack-message<<EOF"
+            echo -e "$slack_message"
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+          
+      # Slack Notification on Success
