@@ -40,7 +40,7 @@ jobs:
           APP_KEY: ${{ secrets.APP_KEY }}
           APP_ID: ${{ secrets.APP_ID }}
         run: |
-          output=$(python app.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
+          output=$(python GH.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
           echo "Script output: $output"
           echo "$output" > script_output.txt
           
