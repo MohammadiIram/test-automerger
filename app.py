@@ -21,8 +21,12 @@ TOKEN_EXPIRATION_SECONDS = 600  # 10 minutes
 
 def generate_github_jwt():
     """Generate a JWT for GitHub API."""
-    with open(GITHUB_PRIVATE_KEY, 'r') as key_file:
-        private_key = key_file.read()
+    if not GITHUB_PRIVATE_KEY or not GITHUB_APP_ID:
+        print(f"Error: Missing APP_ID or APP_KEY.")
+        exit(1)
+
+    # If the private key is stored as a string (not file path), use it directly
+    private_key = GITHUB_PRIVATE_KEY
 
     issued_at = int(time.time())
     payload = {
