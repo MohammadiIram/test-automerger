@@ -32,6 +32,17 @@ jobs:
           app_id: ${{ secrets.APP_ID }}
           private_key: ${{ secrets.APP_KEY }}
 
+      - name: Debug App Token
+        run: |
+          echo "Token: ${{ steps.app-token.outputs.token }}"
+
+      - name: Test Token Permissions
+        run: |
+          curl -H "Authorization: Bearer ${{ steps.app-token.outputs.token }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               https://api.github.com/repos/${{ github.event.inputs.repo }}/pulls/${{ github.event.inputs.pr_id }}
+      
+
       - name: Run Python script with PR ID and repo
         id: process_pr_script
         env:
