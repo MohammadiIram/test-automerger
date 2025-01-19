@@ -156,6 +156,8 @@ def is_user_in_org(org, username):
 
 def check_authors(org, pr):
     pr_author = pr['user']['login']
+
+    print(f"Debug: PR #{pr['number']} state is '{pr.get('state')}'")
     
     if pr.get('state') != 'open':
         print(f"{GREEN}PR #{pr['number']} is not open. Skipping author check.{RESET}")
