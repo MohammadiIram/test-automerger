@@ -25,17 +25,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Generate github-app token
-        id: app-token
-        uses: getsentry/action-github-app-token@v2
-        with:
-          app_id: ${{ secrets.APP_ID }}
-          private_key: ${{ secrets.APP_KEY }}
-
       - name: Run Python script with PR ID and repo
         id: process_pr_script
         env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.TOKEN_GH }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_TEST }}
         run: |
           output=$(python pr.py --pr-id ${{ github.event.inputs.pr_id }} --repo ${{ github.event.inputs.repo }})
