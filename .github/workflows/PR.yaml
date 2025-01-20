@@ -14,7 +14,7 @@ on:
         description: 'Distinct ID'
         required: false
         
-permissions: write-all
+permissions: read-all
 
 jobs:
   process_pr:
