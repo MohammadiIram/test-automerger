@@ -14,10 +14,7 @@ on:
         description: 'Distinct ID'
         required: false
         
-permissions:
-  contents: write
-  actions: write
-  pull-requests: write
+permissions: write-all
 
 jobs:
   process_pr:
